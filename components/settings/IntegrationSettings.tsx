@@ -51,8 +51,8 @@ export const IntegrationSettings: React.FC<IntegrationSettingsProps> = ({ active
 
   const websiteScriptCode = `
 <script>
+// Локальный демо-режим: заявки сохраняются в localStorage
 async function sendToCFO(data) {
-  const DB_URL = "${storageService.getDbUrl().replace(/\/$/, '')}/deals.json";
   const payload = {
     id: "lead-" + Date.now(),
     title: "Заявка: " + (data.name || "С сайта"),
@@ -64,23 +64,25 @@ async function sendToCFO(data) {
     createdAt: new Date().toISOString()
   };
   
-  await fetch(DB_URL, {
-    method: "POST",
-    body: JSON.stringify(payload)
-  });
-  alert("Заявка отправлена!");
+  // В демо-режиме сохраняем в localStorage
+  const existingDeals = JSON.parse(localStorage.getItem('cfo_deals') || '[]');
+  existingDeals.push(payload);
+  localStorage.setItem('cfo_deals', JSON.stringify(existingDeals));
+  
+  alert("Заявка отправлена! (Демо-режим)");
 }
 </script>
 `;
 
   const nodeServerCode = `
+// Локальный демо-режим: интеграции отключены
+// Для продакшена потребуется настройка сервера и базы данных
+
 const express = require('express');
 const bodyParser = require('body-parser');
-const axios = require('axios');
 const app = express();
 app.use(bodyParser.json());
 
-const DB_URL = "${storageService.getDbUrl().replace(/\/$/, '')}/deals.json";
 const VERIFY_TOKEN = "my_secure_token"; 
 
 // 1. Verify Webhook (Required by Meta)
@@ -96,8 +98,8 @@ app.get('/webhook', (req, res) => {
 app.post('/webhook', async (req, res) => {
   const body = req.body;
   if (body.object === 'instagram') {
-    // Process entry...
-    // Send to Firebase DB_URL...
+    // В демо-режиме интеграции отключены
+    console.log('Instagram webhook received (demo mode)');
   }
   res.sendStatus(200);
 });

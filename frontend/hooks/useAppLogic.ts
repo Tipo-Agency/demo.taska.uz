@@ -5,6 +5,7 @@ import { FAVICON_SVG_DATA_URI } from '../../components/AppIcons';
 import { storageService } from '../../services/storageService';
 import { pollTelegramUpdates } from '../../services/telegramService';
 import { Comment, Deal, Task, BusinessProcess } from '../../types';
+import { initializeMockData, resetMockData } from '../../mockData';
 
 import { useAuthLogic } from './slices/useAuthLogic';
 import { useTaskLogic } from './slices/useTaskLogic';
@@ -62,15 +63,30 @@ export const useAppLogic = () => {
   useEffect(() => {
     const faviconLink = document.getElementById('dynamic-favicon') as HTMLLinkElement;
     if (faviconLink) faviconLink.href = FAVICON_SVG_DATA_URI;
-    const initApp = async () => { setIsLoading(true); await api.sync(); refreshData(); setIsLoading(false); };
-    initApp();
-    // Уменьшили интервал синхронизации до 2 секунд для более быстрого обновления
-    const syncInterval = setInterval(async () => { 
-        const hasChanges = await api.sync();
-        if (hasChanges) {
-            refreshData();
+    const initApp = async () => { 
+      try {
+        setIsLoading(true); 
+        // Проверяем, нужно ли принудительно перезаписать данные
+        // Если в URL есть параметр ?reset=true, очищаем все данные
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('reset') === 'true') {
+          console.log('Принудительный сброс данных...');
+          resetMockData();
+        } else {
+          // Инициализируем мок-данные для демо-стенда
+          initializeMockData();
         }
-    }, 2000);
+        // Небольшая задержка для гарантии записи в localStorage
+        await new Promise(resolve => setTimeout(resolve, 100));
+        // Локальный режим - не синхронизируем с облаком
+        refreshData(); 
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Ошибка инициализации приложения:', error);
+        setIsLoading(false);
+      }
+    };
+    initApp();
     const tgPollInterval = setInterval(async () => {
         // Only run polling if enabled in settings
         if (!storageService.getEnableTelegramImport()) return;
@@ -110,7 +126,7 @@ export const useAppLogic = () => {
         }
     }, 10000);
 
-    return () => { clearInterval(syncInterval); clearInterval(tgPollInterval); };
+    return () => { clearInterval(tgPollInterval); };
   }, []);
 
   const saveDocWrapper = (docData: any) => {

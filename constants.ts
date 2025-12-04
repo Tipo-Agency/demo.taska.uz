@@ -1,19 +1,9 @@
 
 import { Project, Role, TableCollection, Task, User, Doc, StatusOption, PriorityOption, NotificationPreferences, Department, FinanceCategory, OrgPosition, AutomationRule } from "./types";
 
-// URL Firebase и токен бота теперь читаем из окружения, чтобы ты мог использовать свой проект.
-// В .env.local можно задать:
-// VITE_FIREBASE_DB_URL=...
-// VITE_TELEGRAM_BOT_TOKEN=...
+// Локальный режим - без Firebase
+// Токен бота для Telegram (опционально, для демо-стенда не требуется)
 export const TELEGRAM_BOT_TOKEN = (import.meta as any).env?.VITE_TELEGRAM_BOT_TOKEN || '';
-export const FIREBASE_DB_URL: string = (import.meta as any).env?.VITE_FIREBASE_DB_URL || '';
-
-// Логируем для отладки
-if (!FIREBASE_DB_URL) {
-    console.warn("⚠️ FIREBASE_DB_URL не настроен! Добавьте VITE_FIREBASE_DB_URL в .env.local");
-} else {
-    console.log("✅ Firebase URL настроен:", FIREBASE_DB_URL.substring(0, 50) + "...");
-}
 export const TELEGRAM_CHAT_ID = '-1002719375477'; 
 
 export const ICON_OPTIONS = ['Bug', 'CheckSquare', 'Target', 'FileText', 'Users', 'Briefcase', 'Zap', 'Star', 'Heart', 'Flag', 'Rocket', 'Layout'];
@@ -78,7 +68,7 @@ export const PRIORITY_COLORS = [
     { name: 'Yellow', class: 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-700' },
 ];
 
-// Пользователи теперь загружаются только из Firebase
+// Пользователи загружаются из мок-данных (см. mockData.ts)
 export const MOCK_USERS: User[] = [];
 
 export const MOCK_PROJECTS: Project[] = [
@@ -91,18 +81,47 @@ export const MOCK_TABLES: TableCollection[] = [
   { id: 't2', name: 'Задачи', type: 'tasks', icon: 'CheckSquare', color: 'text-blue-500', isSystem: true },
   { id: 't4', name: 'Документы', type: 'docs', icon: 'FileText', color: 'text-yellow-500', isSystem: true },
   { id: 't5', name: 'Встречи', type: 'meetings', icon: 'Users', color: 'text-purple-500', isSystem: true },
+  { id: 't6', name: 'Контент-план', type: 'content-plan', icon: 'Instagram', color: 'text-pink-500', isSystem: true },
+  { id: 't7', name: 'Бэклог', type: 'backlog', icon: 'Archive', color: 'text-gray-500', isSystem: true },
+  { id: 't8', name: 'Функционал', type: 'functionality', icon: 'Layers', color: 'text-indigo-500', isSystem: true },
 ];
 
 export const MOCK_DEPARTMENTS: Department[] = [
-    { id: 'dep1', name: 'Маркетинг' },
-    { id: 'dep2', name: 'Продажи' },
-    { id: 'dep3', name: 'IT / Разработка' },
+    { id: 'dep1', name: 'Маркетинг', headId: 'u3', description: 'Отдел маркетинга и продвижения' },
+    { id: 'dep2', name: 'Продажи', headId: 'u4', description: 'Отдел продаж и работы с клиентами' },
+    { id: 'dep3', name: 'IT / Разработка', headId: 'u2', description: 'Отдел разработки и IT' },
+    { id: 'dep4', name: 'Финансы', description: 'Финансовый отдел' },
+    { id: 'dep5', name: 'HR', description: 'Отдел кадров' },
 ];
 
 export const MOCK_ORG_POSITIONS: OrgPosition[] = [
+    // Руководство
     { id: 'op1', title: 'Генеральный директор', holderUserId: 'u1' },
-    { id: 'op2', title: 'Директор по маркетингу', departmentId: 'dep1', managerPositionId: 'op1' },
-    { id: 'op3', title: 'РОП', departmentId: 'dep2', managerPositionId: 'op1' },
+    
+    // Отдел маркетинга (dep1)
+    { id: 'op2', title: 'Директор по маркетингу', departmentId: 'dep1', managerPositionId: 'op1', holderUserId: 'u3' },
+    { id: 'op4', title: 'SMM-менеджер', departmentId: 'dep1', managerPositionId: 'op2', holderUserId: 'u3' },
+    { id: 'op5', title: 'Контент-менеджер', departmentId: 'dep1', managerPositionId: 'op2' },
+    { id: 'op6', title: 'Маркетолог', departmentId: 'dep1', managerPositionId: 'op2' },
+    
+    // Отдел продаж (dep2)
+    { id: 'op3', title: 'Руководитель отдела продаж (РОП)', departmentId: 'dep2', managerPositionId: 'op1', holderUserId: 'u4' },
+    { id: 'op7', title: 'Менеджер по продажам', departmentId: 'dep2', managerPositionId: 'op3', holderUserId: 'u4' },
+    { id: 'op8', title: 'Менеджер по работе с клиентами', departmentId: 'dep2', managerPositionId: 'op3' },
+    { id: 'op9', title: 'Старший менеджер по продажам', departmentId: 'dep2', managerPositionId: 'op3' },
+    
+    // IT / Разработка (dep3)
+    { id: 'op10', title: 'Технический директор', departmentId: 'dep3', managerPositionId: 'op1' },
+    { id: 'op11', title: 'Team Lead Frontend', departmentId: 'dep3', managerPositionId: 'op10', holderUserId: 'u2' },
+    { id: 'op12', title: 'Frontend разработчик', departmentId: 'dep3', managerPositionId: 'op11', holderUserId: 'u2' },
+    { id: 'op13', title: 'Backend разработчик', departmentId: 'dep3', managerPositionId: 'op11' },
+    { id: 'op14', title: 'QA инженер', departmentId: 'dep3', managerPositionId: 'op11' },
+    { id: 'op15', title: 'DevOps инженер', departmentId: 'dep3', managerPositionId: 'op10' },
+    
+    // Дополнительные позиции
+    { id: 'op16', title: 'Финансовый директор', managerPositionId: 'op1' },
+    { id: 'op17', title: 'HR-менеджер', managerPositionId: 'op1' },
+    { id: 'op18', title: 'Юрист', managerPositionId: 'op1' },
 ];
 
 export const DEFAULT_FINANCE_CATEGORIES: FinanceCategory[] = [

@@ -8,7 +8,7 @@ import FunctionalityView from '../FunctionalityView';
 import MeetingsView from '../MeetingsView';
 import ContentPlanView from '../ContentPlanView';
 import DocumentsView from '../DocumentsView';
-import { AlertCircle, LayoutList, Kanban, BarChart3, ListFilter, EyeOff, Plus, CheckSquare } from 'lucide-react';
+import { AlertCircle, LayoutList, Kanban, BarChart3, ListFilter, EyeOff, Plus, CheckSquare, Archive } from 'lucide-react';
 
 interface SpaceModuleProps {
   activeTable: TableCollection;
@@ -41,6 +41,8 @@ export const SpaceModule: React.FC<SpaceModuleProps> = ({
 
   const filteredTasks: Task[] = useMemo(() => {
       return tasks.filter((t) => {
+          // Фильтруем по tableId, если это не системная таблица-агрегатор
+          if (!isAggregator && t.tableId !== activeTable.id) return false;
           if (hideCompleted && t.status === 'Выполнено') return false;
           if (statusFilter !== 'all' && t.status !== statusFilter) return false;
           if (assigneeFilter !== 'all' && t.assigneeId !== assigneeFilter && !(t.assigneeIds && t.assigneeIds.includes(assigneeFilter))) {
@@ -49,7 +51,7 @@ export const SpaceModule: React.FC<SpaceModuleProps> = ({
           if (projectFilter !== 'all' && t.projectId !== projectFilter) return false;
           return true;
       });
-  }, [tasks, hideCompleted, statusFilter, assigneeFilter, projectFilter]);
+  }, [tasks, hideCompleted, statusFilter, assigneeFilter, projectFilter, activeTable.id, isAggregator]);
 
   switch (activeTable.type) {
     case 'tasks':
@@ -60,13 +62,13 @@ export const SpaceModule: React.FC<SpaceModuleProps> = ({
                     <div className="mb-4 md:mb-6">
                         <div className="flex justify-between items-start md:items-center mb-3 md:mb-4 gap-2">
                             <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
-                                <div className="bg-blue-100 dark:bg-blue-900/30 p-1.5 md:p-2 rounded-lg text-blue-600 dark:text-blue-400 shrink-0">
-                                    <CheckSquare size={20} className="md:w-6 md:h-6" />
+                                <div className={`${activeTable.type === 'backlog' ? 'bg-gray-100 dark:bg-gray-900/30 text-gray-600 dark:text-gray-400' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'} p-1.5 md:p-2 rounded-lg shrink-0`}>
+                                    {activeTable.type === 'backlog' ? <Archive size={20} className="md:w-6 md:h-6" /> : <CheckSquare size={20} className="md:w-6 md:h-6" />}
                                 </div>
                                 <div className="min-w-0">
-                                    <h1 className="text-xl md:text-3xl font-bold text-gray-800 dark:text-white truncate">Задачи</h1>
+                                    <h1 className="text-xl md:text-3xl font-bold text-gray-800 dark:text-white truncate">{activeTable.name}</h1>
                                     <p className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 mt-0.5 md:mt-1 hidden sm:block">
-                                        Управление задачами и проектами
+                                        {activeTable.type === 'backlog' ? 'Отложенные задачи и идеи' : 'Управление задачами и проектами'}
                                     </p>
                                 </div>
                             </div>

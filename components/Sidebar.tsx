@@ -91,8 +91,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                 onClick={() => handleNav(() => onNavigate('home'))}
                 className="flex items-center gap-3 hover:bg-notion-hover dark:hover:bg-[#252525] rounded cursor-pointer transition-colors p-2 flex-1"
             >
-                <LogoIcon className="w-6 h-6 shrink-0" />
-                <span className="font-semibold text-sm">Типа задачи</span>
+                <LogoIcon className="w-9 h-9 shrink-0" />
+                <span className="font-semibold text-base">taska.uz</span>
             </div>
             {/* Mobile Close Button */}
             <button onClick={onClose} className="md:hidden p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-[#252525] rounded-lg">

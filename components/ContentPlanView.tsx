@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ContentPost, Task, TableCollection } from '../types';
 import { Calendar, Plus, X, FileText as FileTextIcon, Send, Youtube, Video, Image, FileText, Clock, List, LayoutGrid, KanbanSquare, Linkedin, Check, CheckSquare, ChevronLeft, ChevronRight, Trash2, Edit2, Instagram } from 'lucide-react';
 import { DynamicIcon } from './AppIcons';
@@ -80,7 +80,35 @@ const ContentPlanView: React.FC<ContentPlanViewProps> = ({
   const [draggedPostId, setDraggedPostId] = useState<string | null>(null);
 
   // Filter posts strictly by current table ID
-  const filteredPosts = posts.filter(p => p.tableId === tableId).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  const filteredPosts = useMemo(() => {
+    // Для таблиц типа content-plan показываем все посты с соответствующим tableId
+    const targetTableId = activeTable?.id || tableId;
+    
+    const result = posts.filter(p => {
+      // Показываем посты, которые относятся к текущей таблице
+      return p.tableId === targetTableId;
+    }).sort((a, b) => {
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
+      if (isNaN(dateA) || isNaN(dateB)) return 0;
+      return dateA - dateB;
+    });
+    
+    // Отладка только если нет результатов
+    if (result.length === 0 && posts.length > 0) {
+      console.warn('ContentPlanView: Нет постов после фильтрации', {
+        totalPosts: posts.length,
+        tableId,
+        targetTableId,
+        activeTableId: activeTable?.id,
+        activeTableType: activeTable?.type,
+        postsTableIds: [...new Set(posts.map(p => p.tableId))],
+        samplePost: posts[0]
+      });
+    }
+    
+    return result;
+  }, [posts, tableId, activeTable?.id]);
 
   const handleOpenCreate = () => {
       setEditingPost(null);
@@ -196,13 +224,32 @@ const ContentPlanView: React.FC<ContentPlanViewProps> = ({
 
   // --- GANTT RENDERER ---
   const renderGantt = () => {
-      const timestamps = filteredPosts.map(p => new Date(p.date).getTime()).filter(t => !isNaN(t));
-      let minTime = timestamps.length ? Math.min(...timestamps) : new Date().getTime();
-      let maxTime = timestamps.length ? Math.max(...timestamps) : new Date().getTime();
+      const validPosts = filteredPosts.filter(p => {
+        const date = new Date(p.date);
+        return !isNaN(date.getTime());
+      });
       
-      // Add buffer
-      minTime -= 7 * 24 * 60 * 60 * 1000;
-      maxTime += 14 * 24 * 60 * 60 * 1000;
+      if (validPosts.length === 0) {
+        return (
+          <div className="bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-[#333] rounded-xl shadow-sm p-12 text-center text-gray-400 dark:text-gray-600">
+            <Clock size={48} className="mx-auto mb-4 opacity-20" />
+            <p className="text-sm">Нет постов для отображения на таймлайне</p>
+            <p className="text-xs mt-2">Создайте посты с датами публикации</p>
+            {posts.length > 0 && (
+              <p className="text-xs mt-1 text-gray-500">Всего постов: {posts.length}, Отфильтровано: {filteredPosts.length}</p>
+            )}
+          </div>
+        );
+      }
+      
+      const timestamps = validPosts.map(p => new Date(p.date).getTime());
+      let minTime = Math.min(...timestamps);
+      let maxTime = Math.max(...timestamps);
+      
+      // Add buffer (минимум 30 дней вперед и назад)
+      const now = new Date().getTime();
+      minTime = Math.min(minTime, now - 30 * 24 * 60 * 60 * 1000);
+      maxTime = Math.max(maxTime, now + 60 * 24 * 60 * 60 * 1000);
       
       const startDate = new Date(minTime);
       const endDate = new Date(maxTime);
@@ -225,7 +272,10 @@ const ContentPlanView: React.FC<ContentPlanViewProps> = ({
       const platforms = ['instagram', 'telegram', 'vk', 'youtube', 'linkedin'];
       const groupedPosts = platforms.map(plat => ({
           platform: plat,
-          posts: filteredPosts.filter(p => p.platform.includes(plat))
+          posts: validPosts.filter(p => {
+            const postPlatforms = Array.isArray(p.platform) ? p.platform : [p.platform];
+            return postPlatforms.includes(plat);
+          })
       })).filter(g => g.posts.length > 0);
 
       return (
@@ -285,7 +335,7 @@ const ContentPlanView: React.FC<ContentPlanViewProps> = ({
                     </div>
                 ))}
                 
-                {filteredPosts.length === 0 && (
+                {groupedPosts.length === 0 && (
                     <div className="p-12 text-center text-gray-400 dark:text-gray-600 text-sm">
                         Нет постов для отображения на таймлайне
                     </div>
