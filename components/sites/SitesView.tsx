@@ -168,45 +168,46 @@ export const SitesView: React.FC<SitesViewProps> = ({ currentUser }) => {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Управление сайтами</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Контент для tipa.uz</p>
+    <div className="h-full w-full overflow-auto bg-white dark:bg-[#191919]">
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Управление сайтами</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Контент для tipa.uz</p>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <Globe size={16} />
+            <span>tipa.uz</span>
+          </div>
         </div>
-        <div className="flex items-center gap-2 text-sm text-gray-500">
-          <Globe size={16} />
-          <span>tipa.uz</span>
+
+        {/* Tabs */}
+        <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700">
+          {[
+            { id: 'logos' as TabType, label: 'Логотипы партнеров', icon: ImageIcon },
+            { id: 'news' as TabType, label: 'Новости', icon: FileText },
+            { id: 'cases' as TabType, label: 'Кейсы', icon: Briefcase },
+            { id: 'tags' as TabType, label: 'Теги', icon: TagIcon },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === tab.id
+                  ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <tab.icon size={16} />
+                <span>{tab.label}</span>
+              </div>
+            </button>
+          ))}
         </div>
-      </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700">
-        {[
-          { id: 'logos' as TabType, label: 'Логотипы партнеров', icon: ImageIcon },
-          { id: 'news' as TabType, label: 'Новости', icon: FileText },
-          { id: 'cases' as TabType, label: 'Кейсы', icon: Briefcase },
-          { id: 'tags' as TabType, label: 'Теги', icon: TagIcon },
-        ].map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === tab.id
-                ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-                : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <tab.icon size={16} />
-              <span>{tab.label}</span>
-            </div>
-          </button>
-        ))}
-      </div>
-
-      {/* Content */}
-      <div className="mt-6">
+        {/* Content */}
+        <div className="mt-6">
         {activeTab === 'logos' && (
           <LogosTab
             logos={partnerLogos}
@@ -257,6 +258,7 @@ export const SitesView: React.FC<SitesViewProps> = ({ currentUser }) => {
             editingTag={editingTag}
           />
         )}
+        </div>
       </div>
     </div>
   );
@@ -275,6 +277,8 @@ interface LogosTabProps {
 }
 
 const LogosTab: React.FC<LogosTabProps> = ({ logos, onAdd, onEdit, onDelete, onSave, showModal, onClose, editingLogo }) => {
+  const activeLogos = logos.filter(logo => !logo.isArchived);
+  
   return (
     <div>
       <div className="flex justify-end mb-4">
@@ -287,7 +291,7 @@ const LogosTab: React.FC<LogosTabProps> = ({ logos, onAdd, onEdit, onDelete, onS
         </button>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {logos.map(logo => (
+        {activeLogos.map(logo => (
           <Card key={logo.id} padding="md" className="relative group">
             <div className="flex items-center justify-center h-32 bg-gray-50 dark:bg-[#333] rounded">
               {logo.logoUrl ? (
@@ -438,6 +442,8 @@ interface NewsTabProps {
 }
 
 const NewsTab: React.FC<NewsTabProps> = ({ news, tags, onAdd, onEdit, onDelete, onSave, showModal, onClose, editingNews }) => {
+  const activeNews = news.filter(item => !item.isArchived);
+  
   return (
     <div>
       <div className="flex justify-end mb-4">
@@ -450,7 +456,7 @@ const NewsTab: React.FC<NewsTabProps> = ({ news, tags, onAdd, onEdit, onDelete, 
         </button>
       </div>
       <div className="space-y-4">
-        {news.map(item => (
+        {activeNews.map(item => (
           <Card key={item.id} padding="md" className="relative group">
             <div className="flex gap-4">
               {item.imageUrl && (
@@ -518,6 +524,8 @@ interface CasesTabProps {
 }
 
 const CasesTab: React.FC<CasesTabProps> = ({ cases, tags, onAdd, onEdit, onDelete, onSave, showModal, onClose, editingCase }) => {
+  const activeCases = cases.filter(caseItem => !caseItem.isArchived);
+  
   return (
     <div>
       <div className="flex justify-end mb-4">
@@ -530,7 +538,7 @@ const CasesTab: React.FC<CasesTabProps> = ({ cases, tags, onAdd, onEdit, onDelet
         </button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {cases.map(caseItem => (
+        {activeCases.map(caseItem => (
           <Card key={caseItem.id} padding="md" className="relative group">
             {caseItem.imageUrl && (
               <img src={caseItem.imageUrl} alt={caseItem.title} className="w-full h-48 object-cover rounded mb-3" />
@@ -600,6 +608,8 @@ interface TagsTabProps {
 }
 
 const TagsTab: React.FC<TagsTabProps> = ({ tags, onAdd, onEdit, onDelete, onSave, showModal, onClose, editingTag }) => {
+  const activeTags = tags.filter(tag => !tag.isArchived);
+  
   return (
     <div>
       <div className="flex justify-end mb-4">
@@ -612,7 +622,7 @@ const TagsTab: React.FC<TagsTabProps> = ({ tags, onAdd, onEdit, onDelete, onSave
         </button>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {tags.map(tag => (
+        {activeTags.map(tag => (
           <Card key={tag.id} padding="md" className="relative group">
             <div className="flex items-center gap-2">
               {tag.color && (
