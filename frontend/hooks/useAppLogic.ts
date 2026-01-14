@@ -41,12 +41,19 @@ export const useAppLogic = () => {
   // Базовая загрузка - только критически важные данные для работы приложения
   // Уровень 0: Загрузка данных для аутентификации (только users)
   const loadAuthData = async () => {
-      const users = await api.users.getAll();
-      if (users.length !== authSlice.state.users.length || 
-          users.some(u => !authSlice.state.users.find(au => au.id === u.id))) {
-        authSlice.actions.updateUsers(users);
-      } else {
-        authSlice.setters.setUsers(users);
+      try {
+          console.log('Loading users from Firebase...');
+          const users = await api.users.getAll();
+          console.log('Users loaded:', users.length, users);
+          if (users.length !== authSlice.state.users.length || 
+              users.some(u => !authSlice.state.users.find(au => au.id === u.id))) {
+            authSlice.actions.updateUsers(users);
+          } else {
+            authSlice.setters.setUsers(users);
+          }
+      } catch (error) {
+          console.error('Error loading users:', error);
+          throw error;
       }
   };
 

@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { SalesFunnel, FunnelStage } from '../../types';
-import { Plus, X, Edit2, Trash2, GripVertical, Settings, Instagram, MessageSquare } from 'lucide-react';
+import { SalesFunnel, FunnelStage, NotificationPreferences } from '../../types';
+import { Plus, X, Edit2, Trash2, GripVertical, Settings, Instagram, MessageSquare, Star } from 'lucide-react';
 
 interface SalesFunnelsSettingsProps {
     funnels: SalesFunnel[];
     onSave: (funnel: SalesFunnel) => void;
     onDelete: (id: string) => void;
+    notificationPrefs?: NotificationPreferences;
+    onUpdatePrefs?: (prefs: NotificationPreferences) => void;
 }
 
 const DEFAULT_STAGE_COLORS = [
@@ -31,7 +33,7 @@ const STAGE_COLOR_OPTIONS = [
     { name: 'Amber', class: 'bg-amber-200 dark:bg-amber-900' },
 ];
 
-const SalesFunnelsSettings: React.FC<SalesFunnelsSettingsProps> = ({ funnels, onSave, onDelete }) => {
+const SalesFunnelsSettings: React.FC<SalesFunnelsSettingsProps> = ({ funnels, onSave, onDelete, notificationPrefs, onUpdatePrefs }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingFunnel, setEditingFunnel] = useState<SalesFunnel | null>(null);
     const [funnelName, setFunnelName] = useState('');
@@ -197,6 +199,14 @@ const SalesFunnelsSettings: React.FC<SalesFunnelsSettingsProps> = ({ funnels, on
         }
     };
 
+    const handleSetDefaultFunnel = (funnelId: string) => {
+        if (!onUpdatePrefs || !notificationPrefs) return;
+        onUpdatePrefs({
+            ...notificationPrefs,
+            defaultFunnelId: funnelId === notificationPrefs.defaultFunnelId ? undefined : funnelId,
+        });
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
@@ -213,6 +223,44 @@ const SalesFunnelsSettings: React.FC<SalesFunnelsSettingsProps> = ({ funnels, on
                     <Plus size={18} /> Добавить воронку
                 </button>
             </div>
+
+            {/* Настройка основной воронки */}
+            {funnels.filter(f => !f.isArchived).length > 0 && (
+                <div className="bg-white dark:bg-[#252525] border border-gray-200 dark:border-[#333] rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                        <Star size={18} className="text-yellow-500" />
+                        <h4 className="font-semibold text-gray-800 dark:text-white">Основная воронка</h4>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                        Все лиды без дополнительных атрибутов будут попадать в эту воронку
+                    </p>
+                    <div className="space-y-2">
+                        {funnels.filter(f => !f.isArchived).map(funnel => (
+                            <label key={funnel.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-[#303030] rounded cursor-pointer">
+                                <input
+                                    type="radio"
+                                    name="defaultFunnel"
+                                    checked={notificationPrefs?.defaultFunnelId === funnel.id}
+                                    onChange={() => handleSetDefaultFunnel(funnel.id)}
+                                    className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                                />
+                                <span className="flex-1 text-sm text-gray-800 dark:text-white">{funnel.name}</span>
+                                {notificationPrefs?.defaultFunnelId === funnel.id && (
+                                    <Star size={16} className="text-yellow-500 fill-yellow-500" />
+                                )}
+                            </label>
+                        ))}
+                        {notificationPrefs?.defaultFunnelId && (
+                            <button
+                                onClick={() => handleSetDefaultFunnel('')}
+                                className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 mt-2"
+                            >
+                                Сбросить выбор
+                            </button>
+                        )}
+                    </div>
+                </div>
+            )}
 
             <div className="bg-white dark:bg-[#252525] border border-gray-200 dark:border-[#333] rounded-xl overflow-hidden">
                 {funnels.filter(f => !f.isArchived).length > 0 ? (

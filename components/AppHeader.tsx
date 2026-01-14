@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   Search, Moon, Sun, Settings, Bell, ChevronDown, LogOut, User as UserIcon, Home, Menu, X,
-  BarChart3, Wallet, Network, PieChart, Briefcase, UserCheck, CheckSquare, Users, FileText, Instagram, Layers
+  BarChart3, Wallet, Network, PieChart, Briefcase, UserCheck, CheckSquare, Users, FileText, Instagram, Layers, Globe
 } from 'lucide-react';
 import { User, Role, TableCollection } from '../types';
 import { DynamicIcon } from './AppIcons';
@@ -63,6 +63,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
       case 'meetings': return { title: 'Встречи', icon: <Users size={20} /> };
       case 'docs': return { title: 'Документы', icon: <FileText size={20} /> };
       case 'doc-editor': return { title: 'Редактор документа', icon: <FileText size={20} /> };
+      case 'sites': return { title: 'Сайты', icon: <Globe size={20} /> };
       default: return { title: view, icon: <Settings size={20} /> };
     }
   };

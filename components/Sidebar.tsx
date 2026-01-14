@@ -20,7 +20,8 @@ import {
   FileText,
   Users,
   Archive,
-  Layers
+  Layers,
+  Globe
 } from 'lucide-react';
 import { TableCollection, User, Role } from '../types';
 import { LogoIcon, DynamicIcon } from './AppIcons';
@@ -31,7 +32,7 @@ interface SidebarProps {
   tables: TableCollection[];
   activeTableId: string;
   onSelectTable: (id: string) => void;
-  onNavigate: (view: 'home' | 'tasks' | 'inbox' | 'search' | 'clients' | 'employees' | 'sales-funnel' | 'finance' | 'business-processes' | 'analytics' | 'settings') => void;
+  onNavigate: (view: 'home' | 'tasks' | 'inbox' | 'search' | 'clients' | 'employees' | 'sales-funnel' | 'finance' | 'business-processes' | 'analytics' | 'settings' | 'sites') => void;
   currentView: string;
   currentUser: User;
   onCreateTable: () => void;
@@ -250,6 +251,15 @@ const Sidebar: React.FC<SidebarProps> = ({
                   className={`flex items-center gap-2 px-3 py-1.5 rounded cursor-pointer transition-colors ${(currentView === 'spaces' && activeSpaceTab === 'functionality') || (currentView === 'table' && activeTableId && tables.find(t => t.id === activeTableId)?.type === 'functionality') ? 'bg-notion-hover dark:bg-[#252525] text-notion-text dark:text-white font-medium' : 'text-notion-text/70 dark:text-gray-400 hover:bg-notion-hover dark:hover:bg-[#252525] hover:text-notion-text dark:hover:text-gray-200'}`}
                 >
                   <Layers size={16} /> <span className="text-sm">Функционал</span>
+                </div>
+
+                {/* Сайты */}
+                <div 
+                  data-nav-item="sites"
+                  onClick={() => handleNav(() => onNavigate('sites'))}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded cursor-pointer transition-colors ${currentView === 'sites' ? 'bg-notion-hover dark:bg-[#252525] text-notion-text dark:text-white font-medium' : 'text-notion-text/70 dark:text-gray-400 hover:bg-notion-hover dark:hover:bg-[#252525] hover:text-notion-text dark:hover:text-gray-200'}`}
+                >
+                  <Globe size={16} /> <span className="text-sm">Сайты</span>
                 </div>
               </div>
             )}

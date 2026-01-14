@@ -5,7 +5,8 @@ import {
   Deal, Client, Contract, EmployeeInfo, Meeting, ContentPost, 
   Doc, Folder, TableCollection, Department, FinanceCategory, 
   FinancePlan, PurchaseRequest, FinancialPlanDocument, FinancialPlanning, OrgPosition, BusinessProcess, SalesFunnel, 
-  ViewMode, AutomationRule, Warehouse, InventoryItem, StockBalance, StockMovement, OneTimeDeal, AccountsReceivable
+  ViewMode, AutomationRule, Warehouse, InventoryItem, StockBalance, StockMovement, OneTimeDeal, AccountsReceivable,
+  NotificationPreferences
 } from '../types';
 
 import HomeView from './HomeView';
@@ -22,6 +23,7 @@ import { FinanceModule } from './modules/FinanceModule';
 import { HRModule } from './modules/HRModule';
 import { MeetingsModule } from './modules/MeetingsModule';
 import { DocumentsModule } from './modules/DocumentsModule';
+import { SitesView } from './sites/SitesView';
 
 interface AppRouterProps {
   currentView: string;
@@ -65,6 +67,7 @@ interface AppRouterProps {
   settingsActiveTab?: string;
   activeSpaceTab?: 'content-plan' | 'backlog' | 'functionality';
   telegramBotToken?: string;
+  notificationPrefs?: NotificationPreferences;
   actions: any;
 }
 
@@ -180,6 +183,7 @@ export const AppRouter: React.FC<AppRouterProps> = (props) => {
               onSaveSalesFunnel={actions.saveSalesFunnel} onDeleteSalesFunnel={actions.deleteSalesFunnel}
               onUpdateTelegramBotToken={actions.onUpdateTelegramBotToken}
               telegramBotToken={props.telegramBotToken}
+              notificationPrefs={props.notificationPrefs}
               onRestoreTask={actions.restoreTask}
               onPermanentDelete={actions.permanentDeleteTask}
               onRestoreUser={actions.restoreUser}
@@ -291,6 +295,10 @@ export const AppRouter: React.FC<AppRouterProps> = (props) => {
           // Модуль будет работать с этой фиктивной таблицей
       }
       return <DocumentsModule table={docsTable} docs={props.docs} folders={props.folders} tables={props.tables} tasks={props.allTasks} actions={actions} />;
+  }
+
+  if (view === 'sites') {
+      return <SitesView currentUser={props.currentUser} />;
   }
 
   // Fallback: если ничего не подошло, показываем home

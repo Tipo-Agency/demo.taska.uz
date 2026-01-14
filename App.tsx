@@ -192,6 +192,7 @@ const App = () => {
                 settingsActiveTab={state.settingsActiveTab}
                 activeSpaceTab={state.activeSpaceTab}
                 telegramBotToken={state.telegramBotToken}
+                notificationPrefs={state.notificationPrefs}
                 actions={actions}
             />
             </div>

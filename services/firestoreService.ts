@@ -113,7 +113,8 @@ export const firestoreService = {
         'departments', 'financeCategories', 'financePlan', 'purchaseRequests',
         'orgPositions', 'businessProcesses', 'automationRules',
         'warehouses', 'inventoryItems', 'stockMovements',
-        'salesFunnels'
+        'salesFunnels',
+        'partnerLogos', 'news', 'cases', 'tags' // Контент для сайтов
       ];
 
       for (const collectionName of collections) {
@@ -162,7 +163,8 @@ export const firestoreService = {
         'financialPlanDocuments', 'financialPlannings',
         'orgPositions', 'businessProcesses', 'automationRules',
         'warehouses', 'inventoryItems', 'stockMovements',
-        'salesFunnels'
+        'salesFunnels',
+        'partnerLogos', 'news', 'cases', 'tags' // Контент для сайтов
       ];
 
       const state: any = {};

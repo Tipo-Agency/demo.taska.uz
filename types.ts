@@ -447,6 +447,8 @@ export interface NotificationPreferences {
     processStarted: NotificationSetting;
     processStepCompleted: NotificationSetting;
     processStepRequiresApproval: NotificationSetting;
+    // Настройки воронок продаж
+    defaultFunnelId?: string; // ID основной воронки для лидов по умолчанию
 }
 
 // --- FINANCE TYPES ---
@@ -594,4 +596,56 @@ export interface ContentPlanPage {
   name: string; // Название страницы (обычно название проекта)
   createdAt: string; // ISO дата создания
   publicLink?: string; // Публичная ссылка для клиента
+}
+
+// Типы для управления контентом сайтов
+export interface Tag {
+  id: string;
+  name: string; // Название тега
+  color?: string; // Цвет тега (hex)
+  createdAt: string;
+  updatedAt?: string;
+  isArchived?: boolean;
+}
+
+export interface PartnerLogo {
+  id: string;
+  name: string; // Название партнера
+  logoUrl: string; // URL логотипа в Firebase Storage
+  websiteUrl?: string; // Ссылка на сайт партнера
+  order: number; // Порядок отображения
+  createdAt: string;
+  updatedAt?: string;
+  isArchived?: boolean;
+}
+
+export interface News {
+  id: string;
+  title: string; // Заголовок новости
+  content: string; // HTML контент (из редактора)
+  imageUrl?: string; // URL главного изображения
+  excerpt?: string; // Краткое описание для превью
+  tags: string[]; // Массив ID тегов
+  published: boolean; // Опубликована ли новость
+  publishedAt?: string; // Дата публикации
+  createdAt: string;
+  updatedAt?: string;
+  isArchived?: boolean;
+}
+
+export interface Case {
+  id: string;
+  title: string; // Название кейса
+  description: string; // HTML описание кейса
+  imageUrl?: string; // URL главного изображения
+  excerpt?: string; // Аннотация для превью
+  clientName?: string; // Название клиента (необязательно)
+  websiteUrl?: string; // Ссылка на сайт проекта/клиента
+  instagramUrl?: string; // Ссылка на Instagram проекта/клиента
+  tags: string[]; // Массив ID тегов
+  order: number; // Порядок отображения
+  published: boolean; // Опубликован ли кейс
+  createdAt: string;
+  updatedAt?: string;
+  isArchived?: boolean;
 }

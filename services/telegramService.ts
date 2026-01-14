@@ -1,6 +1,7 @@
 
 import { TelegramButtonConfig, Deal, Comment } from "../types";
 import { storageService } from "./storageService";
+import { api } from "../backend/api";
 
 // --- EMPLOYEE BOT (Notifications, Automation) ---
 
@@ -117,13 +118,29 @@ export const pollTelegramUpdates = async (): Promise<{ newDeals: Deal[], newMess
                         });
                     } else {
                         // It's a new lead
+                        // Получаем основную воронку из настроек
+                        const notificationPrefs = await api.notificationPrefs.get();
+                        const defaultFunnelId = notificationPrefs?.defaultFunnelId;
+                        
+                        // Если есть основная воронка, получаем первый этап
+                        let stageId = 'new';
+                        let funnelId = defaultFunnelId;
+                        if (defaultFunnelId) {
+                            const funnels = await api.funnels.getAll();
+                            const defaultFunnel = funnels.find(f => f.id === defaultFunnelId);
+                            if (defaultFunnel && defaultFunnel.stages.length > 0) {
+                                stageId = defaultFunnel.stages[0].id;
+                            }
+                        }
+                        
                         const deal: Deal = {
                             id: `lead-tg-${update.update_id}`,
                             title: `Лид: ${username}`,
                             contactName: username,
                             amount: 0,
                             currency: 'UZS',
-                            stage: 'new',
+                            stage: stageId,
+                            funnelId: funnelId,
                             source: 'telegram',
                             telegramChatId: chatId,
                             telegramUsername: username,

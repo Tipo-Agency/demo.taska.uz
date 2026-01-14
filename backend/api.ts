@@ -9,6 +9,7 @@ import { departmentsEndpoint, financeEndpoint } from "./endpoints/finance.endpoi
 import { bpmEndpoint } from "./endpoints/bpm.endpoint";
 import { inventoryEndpoint } from "./endpoints/inventory.endpoint";
 import { funnelsEndpoint } from "./endpoints/funnels.endpoint";
+import { partnerLogosEndpoint, newsEndpoint, casesEndpoint, tagsEndpoint, publicSitesEndpoint } from "./endpoints/sites.endpoint";
 
 // The Unified "Backend" Interface
 export const api = {
@@ -43,4 +44,11 @@ export const api = {
   bpm: bpmEndpoint,
   inventory: inventoryEndpoint,
   funnels: funnelsEndpoint,
+  
+  // Sites content management
+  partnerLogos: partnerLogosEndpoint,
+  news: newsEndpoint,
+  cases: casesEndpoint,
+  tags: tagsEndpoint,
+  publicSites: publicSitesEndpoint,
 };

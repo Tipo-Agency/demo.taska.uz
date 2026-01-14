@@ -23,12 +23,15 @@ export const LoginView: React.FC<LoginViewProps> = ({ users, onLogin }) => {
         }
         
         // Находим пользователя по логину (без учета регистра)
+        console.log('Login attempt:', { login: trimmedLogin, usersCount: users.length });
         const user = users.find(u => {
             if (!u.login) return false;
             const userLogin = String(u.login).trim().toLowerCase();
             const inputLogin = trimmedLogin.toLowerCase();
             return userLogin === inputLogin;
         });
+        
+        console.log('User found:', !!user, user ? { login: user.login, hasPassword: !!user.password } : null);
         
         if (!user || !user.password) {
             setError('Неверный логин или пароль');
@@ -39,12 +42,30 @@ export const LoginView: React.FC<LoginViewProps> = ({ users, onLogin }) => {
         // ВАЖНО: Незахешированные пароли - это временная мера для миграции. Все новые пароли должны быть захешированы.
         let passwordMatch = false;
         
-        if (isHashedPassword(user.password)) {
+        const isHashed = isHashedPassword(user.password);
+        console.log('Login debug:', {
+            userLogin: user.login,
+            passwordLength: user.password.length,
+            isHashed,
+            passwordStart: user.password.substring(0, 20),
+        });
+        
+        if (isHashed) {
             // Пароль захеширован - используем безопасное сравнение через bcrypt
-            passwordMatch = await comparePassword(trimmedPassword, user.password);
+            try {
+                passwordMatch = await comparePassword(trimmedPassword, user.password);
+                console.log('Password comparison result:', passwordMatch);
+            } catch (error) {
+                console.error('Error comparing password:', error);
+                passwordMatch = false;
+            }
         } else {
             // Старый пароль в открытом виде (для обратной совместимости при миграции)
             passwordMatch = user.password.trim() === trimmedPassword;
+            console.log('Plain password comparison:', passwordMatch, {
+                stored: user.password.trim(),
+                entered: trimmedPassword,
+            });
         }
         
         if (passwordMatch) {

@@ -214,6 +214,7 @@ interface SettingsViewProps {
   onDeleteSalesFunnel?: (id: string) => void;
   onUpdateTelegramBotToken?: (token: string) => void;
   telegramBotToken?: string;
+  notificationPrefs?: NotificationPreferences;
   
   initialTab?: string;
 }
@@ -232,7 +233,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
   financeCategories = [], onSaveFinanceCategory, onDeleteFinanceCategory,
   salesFunnels = [], onSaveSalesFunnel, onDeleteSalesFunnel,
   employeeInfos = [], deals = [], clients = [], contracts = [], meetings = [], businessProcesses = [],
-  onUpdateTelegramBotToken, telegramBotToken, onClose
+  onUpdateTelegramBotToken, telegramBotToken, notificationPrefs, onClose
 }) => {
   const [activeTab, setActiveTab] = useState<string>(initialTab);
   
@@ -283,7 +284,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
           {activeTab === 'spaces' && <SpaceSettings activeTab="projects" tables={tables} projects={projects} statuses={statuses} priorities={priorities} onUpdateTable={onUpdateTable!} onCreateTable={onCreateTable!} onDeleteTable={onDeleteTable!} onUpdateProjects={onUpdateProjects} onUpdateStatuses={onUpdateStatuses} onUpdatePriorities={onUpdatePriorities} />}
           {activeTab === 'departments' && <DepartmentsView departments={departments} users={users} onSave={onSaveDepartment!} onDelete={onDeleteDepartment!} />}
           {activeTab === 'finance-categories' && <FinanceCategoriesSettings categories={financeCategories} onSave={onSaveFinanceCategory!} onDelete={onDeleteFinanceCategory!} />}
-          {activeTab === 'sales-funnels' && <SalesFunnelsSettings funnels={salesFunnels} onSave={onSaveSalesFunnel!} onDelete={onDeleteSalesFunnel!} />}
+          {activeTab === 'sales-funnels' && <SalesFunnelsSettings funnels={salesFunnels} onSave={onSaveSalesFunnel!} onDelete={onDeleteSalesFunnel!} notificationPrefs={notificationPrefs} onUpdatePrefs={onUpdateNotificationPrefs} />}
           {activeTab === 'statuses' && <SpaceSettings activeTab={activeTab} tables={tables} projects={projects} statuses={statuses} priorities={priorities} onUpdateTable={onUpdateTable!} onCreateTable={onCreateTable!} onDeleteTable={onDeleteTable!} onUpdateProjects={onUpdateProjects} onUpdateStatuses={onUpdateStatuses} onUpdatePriorities={onUpdatePriorities} />}
           {activeTab === 'priorities' && <SpaceSettings activeTab={activeTab} tables={tables} projects={projects} statuses={statuses} priorities={priorities} onUpdateTable={onUpdateTable!} onCreateTable={onCreateTable!} onDeleteTable={onDeleteTable!} onUpdateProjects={onUpdateProjects} onUpdateStatuses={onUpdateStatuses} onUpdatePriorities={onUpdatePriorities} />}
           {activeTab === 'automation' && <AutomationSettings activeTab="notifications" notificationPrefs={{}} onUpdatePrefs={onUpdateNotificationPrefs} automationRules={automationRules} statuses={statuses} onSaveRule={onSaveAutomationRule} onDeleteRule={onDeleteAutomationRule} />}

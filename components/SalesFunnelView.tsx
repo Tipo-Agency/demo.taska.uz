@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Deal, Client, User, Comment, Task, Project, SalesFunnel } from '../types';
 import { Plus, KanbanSquare, List as ListIcon, X, Send, MessageSquare, Instagram, Globe, UserPlus, Bot, Edit2, TrendingUp, CheckSquare, CheckCircle2, XCircle } from 'lucide-react';
 import { sendClientMessage } from '../services/telegramService';
@@ -7,6 +7,7 @@ import { instagramService } from '../services/instagramService';
 import { DynamicIcon } from './AppIcons';
 import { TaskSelect } from './TaskSelect';
 import { Button } from './ui';
+import { api } from '../backend/api';
 
 interface SalesFunnelViewProps {
   deals: Deal[];
@@ -52,11 +53,33 @@ const SalesFunnelView: React.FC<SalesFunnelViewProps> = ({ deals, clients, users
   const [showTaskDropdown, setShowTaskDropdown] = useState(false);
   const [selectedFunnelId, setSelectedFunnelId] = useState<string>('');
   const [funnelId, setFunnelId] = useState<string>('');
+  const [defaultFunnelId, setDefaultFunnelId] = useState<string | undefined>(undefined);
 
-  // Устанавливаем первую воронку по умолчанию, если она есть
+  // Получаем основную воронку из настроек
   useEffect(() => {
-    if (salesFunnels.length > 0 && !selectedFunnelId) {
-      setSelectedFunnelId(salesFunnels[0].id);
+    const loadDefaultFunnel = async () => {
+      try {
+        const notificationPrefs = await api.notificationPrefs.get();
+        const defaultId = notificationPrefs?.defaultFunnelId;
+        setDefaultFunnelId(defaultId);
+        
+        // Устанавливаем основную воронку по умолчанию только при первой загрузке
+        if (defaultId && salesFunnels.find(f => f.id === defaultId)) {
+          setSelectedFunnelId(prev => prev || defaultId);
+        } else if (salesFunnels.length > 0) {
+          // Если основной воронки нет, выбираем первую
+          setSelectedFunnelId(prev => prev || salesFunnels[0].id);
+        }
+      } catch (error) {
+        console.error('Error loading default funnel:', error);
+        // При ошибке выбираем первую воронку
+        if (salesFunnels.length > 0) {
+          setSelectedFunnelId(prev => prev || salesFunnels[0].id);
+        }
+      }
+    };
+    if (salesFunnels.length > 0) {
+      loadDefaultFunnel();
     }
   }, [salesFunnels]);
 
@@ -108,8 +131,25 @@ const SalesFunnelView: React.FC<SalesFunnelViewProps> = ({ deals, clients, users
     setIsModalOpen(true); 
   };
 
-  const handleSubmit = (e?: React.FormEvent) => {
+  const handleSubmit = async (e?: React.FormEvent) => {
       if (e) e.preventDefault();
+      
+      // Если воронка не указана, используем основную воронку из настроек
+      let finalFunnelId = funnelId;
+      if (!finalFunnelId) {
+          const notificationPrefs = await api.notificationPrefs.get();
+          finalFunnelId = notificationPrefs?.defaultFunnelId;
+      }
+      
+      // Если есть воронка, получаем первый этап, если stage не указан
+      let finalStage = stage;
+      if (finalFunnelId && !finalStage) {
+          const funnel = salesFunnels.find(f => f.id === finalFunnelId);
+          if (funnel && funnel.stages.length > 0) {
+              finalStage = funnel.stages[0].id;
+          }
+      }
+      
       onSaveDeal({
           id: editingDeal ? editingDeal.id : `deal-${Date.now()}`,
           title, 
@@ -117,8 +157,8 @@ const SalesFunnelView: React.FC<SalesFunnelViewProps> = ({ deals, clients, users
           contactName: contactName || undefined, 
           amount: parseFloat(amount) || 0, 
           currency: 'UZS', 
-          stage, 
-          funnelId: funnelId || undefined,
+          stage: finalStage, 
+          funnelId: finalFunnelId || undefined,
           source, 
           assigneeId, 
           notes: notes || undefined,
@@ -285,10 +325,20 @@ const SalesFunnelView: React.FC<SalesFunnelViewProps> = ({ deals, clients, users
   };
   
   // Фильтрация сделок по выбранной воронке, исключаем архивные
-  const filteredDeals = (selectedFunnelId 
-    ? deals.filter(d => d.funnelId === selectedFunnelId)
-    : deals
-  ).filter(d => !d.isArchived);
+  // Если выбрана основная воронка, показываем сделки с этой воронкой И сделки без воронки
+  const filteredDeals = useMemo(() => {
+    if (!selectedFunnelId) {
+      return deals.filter(d => !d.isArchived);
+    }
+    
+    // Если выбрана основная воронка, показываем сделки с этой воронкой и сделки без воронки
+    if (selectedFunnelId === defaultFunnelId) {
+      return deals.filter(d => !d.isArchived && (!d.funnelId || d.funnelId === selectedFunnelId));
+    }
+    
+    // Для других воронок показываем только сделки с этой воронкой
+    return deals.filter(d => !d.isArchived && d.funnelId === selectedFunnelId);
+  }, [deals, selectedFunnelId, defaultFunnelId]);
   
   const activeDeals = filteredDeals.filter(d => d.stage !== 'won' && d.stage !== 'lost');
   const wonDeals = filteredDeals.filter(d => d.stage === 'won');
@@ -335,7 +385,7 @@ const SalesFunnelView: React.FC<SalesFunnelViewProps> = ({ deals, clients, users
                         return (
                             <tr key={deal.id} onClick={() => handleOpenEdit(deal)} className="hover:bg-gray-50 dark:hover:bg-[#2a2a2a] cursor-pointer group transition-colors">
                                 <td className="px-4 py-3 font-medium text-gray-800 dark:text-gray-200">{deal.title}</td>
-                                <td className="px-4 py-3 font-bold text-gray-900 dark:text-white">{deal.amount.toLocaleString()}</td>
+                                <td className="px-4 py-3 font-bold text-gray-900 dark:text-white">{(deal.amount || 0).toLocaleString()}</td>
                                 <td className="px-4 py-3">
                                     {dealProject ? (
                                         <div className="flex items-center gap-1.5">
@@ -467,7 +517,7 @@ const SalesFunnelView: React.FC<SalesFunnelViewProps> = ({ deals, clients, users
                                           <div key={d.id} draggable onDragStart={(e) => onDragStart(e, d.id)} onClick={() => handleOpenEdit(d)} className="bg-white dark:bg-[#2b2b2b] p-2 md:p-3 rounded shadow-sm border border-gray-200 dark:border-[#3a3a3a] cursor-pointer hover:shadow-md transition-all">
                                               <div className="font-medium text-xs md:text-sm text-gray-800 dark:text-gray-100 mb-1 line-clamp-2">{d.title}</div>
                                               <div className="flex items-center justify-between gap-2 mb-1">
-                                                  <span className="text-xs text-gray-500">{d.amount.toLocaleString()} UZS</span>
+                                                  <span className="text-xs text-gray-500">{(d.amount || 0).toLocaleString()} UZS</span>
                                                   {dealProject && (
                                                       <div className="flex items-center gap-1 text-xs">
                                                           <DynamicIcon name={dealProject.icon} className={`${dealProject.color} w-3 h-3`} />
@@ -535,7 +585,7 @@ const SalesFunnelView: React.FC<SalesFunnelViewProps> = ({ deals, clients, users
                                 return (
                                     <tr key={deal.id} onClick={() => handleOpenEdit(deal)} className="hover:bg-gray-50 dark:hover:bg-[#2a2a2a] cursor-pointer group transition-colors">
                                         <td className="px-4 py-3 font-medium text-gray-800 dark:text-gray-200">{deal.title}</td>
-                                        <td className="px-4 py-3 font-bold text-gray-900 dark:text-white">{deal.amount.toLocaleString()}</td>
+                                        <td className="px-4 py-3 font-bold text-gray-900 dark:text-white">{(deal.amount || 0).toLocaleString()}</td>
                                         <td className="px-4 py-3">
                                             {dealProject ? (
                                                 <div className="flex items-center gap-1.5">
@@ -595,8 +645,13 @@ const SalesFunnelView: React.FC<SalesFunnelViewProps> = ({ deals, clients, users
                                       value={stage}
                                       onChange={setStage}
                                       options={[
-                                          ...(funnelId && currentFunnel 
-                                              ? currentFunnel.stages.map(s => ({ value: s.id, label: s.name }))
+                                          ...(funnelId 
+                                              ? (() => {
+                                                  const currentFunnel = salesFunnels.find(f => f.id === funnelId);
+                                                  return currentFunnel && currentFunnel.stages.length > 0
+                                                      ? currentFunnel.stages.map(s => ({ value: s.id, label: s.name }))
+                                                      : STAGES.map(s => ({ value: s.id, label: s.label }));
+                                              })()
                                               : STAGES.map(s => ({ value: s.id, label: s.label }))),
                                           { value: 'won', label: 'Выиграна' },
                                           { value: 'lost', label: 'Проиграна' }
