@@ -42,17 +42,33 @@ export const useAppLogic = () => {
   // Уровень 0: Загрузка данных для аутентификации (только users)
   const loadAuthData = async () => {
       try {
-          console.log('Loading users from Firebase...');
+          console.log('[Auth] Loading users from Firebase...');
           const users = await api.users.getAll();
-          console.log('Users loaded:', users.length, users);
+          console.log('[Auth] Users loaded:', users.length, users);
+          
+          if (users.length === 0) {
+              console.warn('[Auth] WARNING: No users found in Firebase!');
+              console.warn('[Auth] This might be due to:');
+              console.warn('[Auth] 1. Firestore security rules blocking access');
+              console.warn('[Auth] 2. No users in the database');
+              console.warn('[Auth] 3. Firebase Auth not initialized');
+          }
+          
           if (users.length !== authSlice.state.users.length || 
               users.some(u => !authSlice.state.users.find(au => au.id === u.id))) {
+            console.log('[Auth] Updating users via updateUsers');
             authSlice.actions.updateUsers(users);
           } else {
+            console.log('[Auth] Setting users directly');
             authSlice.setters.setUsers(users);
           }
-      } catch (error) {
-          console.error('Error loading users:', error);
+      } catch (error: any) {
+          console.error('[Auth] Error loading users:', error);
+          console.error('[Auth] Error details:', {
+              code: error?.code,
+              message: error?.message,
+              stack: error?.stack
+          });
           throw error;
       }
   };
@@ -359,7 +375,14 @@ export const useAppLogic = () => {
               break;
           case 'meetings':
           case 'docs':
-              await loadContentData();
+          case 'table':
+              // Для table проверяем тип активной таблицы
+              const activeTable = settingsSlice.state.tables.find(t => t.id === settingsSlice.state.activeTableId);
+              if (activeTable?.type === 'content-plan') {
+                  await loadContentData();
+              } else {
+                  await loadTasksData();
+              }
               break;
           case 'inventory':
               await loadInventoryData();
@@ -370,7 +393,27 @@ export const useAppLogic = () => {
     loadData().catch(err => {
       console.error('Ошибка загрузки данных модуля:', err);
     });
-  }, [settingsSlice.state.currentView]);
+  }, [settingsSlice.state.currentView, settingsSlice.state.activeTableId]);
+
+  // Обработчик синхронизации контент-плана
+  useEffect(() => {
+      const handleContentPlanSync = async () => {
+          const activeTable = settingsSlice.state.tables.find(t => t.id === settingsSlice.state.activeTableId);
+          if (activeTable?.type === 'content-plan') {
+              try {
+                  const contentPosts = await api.contentPosts.getAll();
+                  contentSlice.setters.setContentPosts(contentPosts);
+              } catch (error) {
+                  console.error('Ошибка обновления контент-плана:', error);
+              }
+          }
+      };
+
+      window.addEventListener('contentPlanSync', handleContentPlanSync);
+      return () => {
+          window.removeEventListener('contentPlanSync', handleContentPlanSync);
+      };
+  }, [settingsSlice.state.activeTableId, settingsSlice.state.tables]);
 
   const saveDocWrapper = (docData: any) => {
       // Для документов не требуется tableId - находим системную таблицу docs или используем пустую строку

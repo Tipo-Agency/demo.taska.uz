@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { ContentPost, Task, TableCollection } from '../types';
-import { Calendar, Plus, X, FileText as FileTextIcon, Send, Youtube, Video, Image, FileText, Clock, List, LayoutGrid, KanbanSquare, Linkedin, Check, CheckSquare, ChevronLeft, ChevronRight, Trash2, Edit2, Instagram, CheckSquare2, Save } from 'lucide-react';
+import { Calendar, Plus, X, FileText as FileTextIcon, Send, Youtube, Video, Image, FileText, Clock, List, LayoutGrid, KanbanSquare, Linkedin, Check, CheckSquare, ChevronLeft, ChevronRight, Trash2, Edit2, Instagram, CheckSquare2, Save, RefreshCw } from 'lucide-react';
 import { DynamicIcon } from './AppIcons';
 import { TaskSelect } from './TaskSelect';
+import { api } from '../backend/api';
 
 interface ContentPlanViewProps {
   posts: ContentPost[];
@@ -86,6 +87,41 @@ const ContentPlanView: React.FC<ContentPlanViewProps> = ({
   useEffect(() => {
       if (!date) setDate(new Date().toISOString().split('T')[0]);
   }, []);
+
+  // Автоматическая синхронизация данных каждые 15 секунд и при фокусе на окне
+  const [isSyncing, setIsSyncing] = useState(false);
+  const syncData = async () => {
+      if (isSyncing) return; // Предотвращаем параллельные синхронизации
+      setIsSyncing(true);
+      try {
+          await api.sync();
+          // Отправляем событие для обновления данных в родительском компоненте
+          window.dispatchEvent(new CustomEvent('contentPlanSync'));
+      } catch (error) {
+          console.error('Ошибка синхронизации контент-плана:', error);
+      } finally {
+          setIsSyncing(false);
+      }
+  };
+
+  useEffect(() => {
+      // Синхронизация при монтировании
+      syncData();
+
+      // Периодическая синхронизация каждые 15 секунд
+      const interval = setInterval(syncData, 15000);
+
+      // Синхронизация при фокусе на окне
+      const handleFocus = () => {
+          syncData();
+      };
+      window.addEventListener('focus', handleFocus);
+
+      return () => {
+          clearInterval(interval);
+          window.removeEventListener('focus', handleFocus);
+      };
+  }, [tableId]);
 
   // DnD State
   const [draggedPostId, setDraggedPostId] = useState<string | null>(null);
@@ -640,6 +676,15 @@ const ContentPlanView: React.FC<ContentPlanViewProps> = ({
                   </button>
                 </div>
               </div>
+              <button 
+                onClick={handleSync} 
+                disabled={isSyncing}
+                className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-[#2a2a2a] disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Обновить данные"
+              >
+                <RefreshCw size={16} className={isSyncing ? 'animate-spin' : ''} /> 
+                {isSyncing ? 'Обновление...' : 'Обновить'}
+              </button>
               <button onClick={handleOpenCreate} className={`px-4 py-2 rounded-lg ${getButtonColor()} text-white text-sm font-medium flex items-center gap-2 shadow-sm`}>
                 <Plus size={18} /> Создать
               </button>

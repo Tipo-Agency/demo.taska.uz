@@ -35,9 +35,12 @@ const App = () => {
 
   // Firebase Auth initialization
   useEffect(() => {
-    initFirebaseAuth().then(() => {
+    console.log('[App] Initializing Firebase Auth...');
+    initFirebaseAuth().then((user) => {
+      console.log('[App] Firebase Auth initialized, user:', user?.email || 'null');
       setFirebaseAuthReady(true);
     }).catch((error) => {
+      console.error('[App] Firebase Auth initialization error:', error);
       // Firebase Auth initialization error - продолжаем работу
       setFirebaseAuthReady(true); // Продолжаем работу даже при ошибке
     });

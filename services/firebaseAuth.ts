@@ -18,25 +18,34 @@ const ADMIN_PASSWORD = 'FirebaseAdmin2024!'; // Измените на более
  */
 export const initFirebaseAuth = async (): Promise<FirebaseUser | null> => {
   try {
+    console.log('[FirebaseAuth] Initializing Firebase Auth...');
     // Проверяем, авторизован ли уже пользователь
     if (auth.currentUser) {
+      console.log('[FirebaseAuth] User already authenticated:', auth.currentUser.email);
       return auth.currentUser;
     }
 
     // Пытаемся войти с администраторскими данными
     try {
+      console.log('[FirebaseAuth] Attempting to sign in with admin credentials...');
       const userCredential = await signInWithEmailAndPassword(auth, ADMIN_EMAIL, ADMIN_PASSWORD);
+      console.log('[FirebaseAuth] Successfully signed in:', userCredential.user.email);
       return userCredential.user;
     } catch (error: any) {
+      console.log('[FirebaseAuth] Sign in error:', error.code, error.message);
       // Если пользователь не существует, создаем его
       if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+        console.log('[FirebaseAuth] User not found, creating new admin user...');
         const userCredential = await createUserWithEmailAndPassword(auth, ADMIN_EMAIL, ADMIN_PASSWORD);
+        console.log('[FirebaseAuth] Admin user created:', userCredential.user.email);
         return userCredential.user;
       }
       throw error;
     }
-  } catch (error) {
-    // Firebase Auth Error
+  } catch (error: any) {
+    console.error('[FirebaseAuth] Firebase Auth Error:', error);
+    console.error('[FirebaseAuth] Error code:', error?.code);
+    console.error('[FirebaseAuth] Error message:', error?.message);
     // Продолжаем работу даже при ошибке авторизации
     return null;
   }

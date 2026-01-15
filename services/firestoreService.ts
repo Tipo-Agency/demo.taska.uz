@@ -209,6 +209,7 @@ export const firestoreService = {
    */
   getAll: async (collectionName: string): Promise<any[]> => {
     try {
+      console.log(`[Firestore] Getting all items from collection: ${collectionName}`);
       const collectionRef = collection(db, collectionName);
       const snapshot = await getDocs(collectionRef);
       const items: any[] = [];
@@ -216,8 +217,11 @@ export const firestoreService = {
         const data = doc.data();
         items.push(prepareDataFromFirestore({ id: doc.id, ...data }));
       });
+      console.log(`[Firestore] Loaded ${items.length} items from ${collectionName}:`, items);
       return items;
-    } catch (error) {
+    } catch (error: any) {
+      console.error(`[Firestore] Error getting all items from ${collectionName}:`, error);
+      console.error(`[Firestore] Error code: ${error?.code}, message: ${error?.message}`);
       // Error getting all items
       return [];
     }
