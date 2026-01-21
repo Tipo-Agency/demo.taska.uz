@@ -11,6 +11,7 @@ interface BusinessProcessesViewProps {
   users: User[];
   tasks: Task[];
   tables: TableCollection[];
+  currentUser?: User | null;
   onSaveProcess: (proc: BusinessProcess) => void;
   onDeleteProcess: (id: string) => void;
   onSaveTask: (task: Partial<Task>) => void;
@@ -19,7 +20,7 @@ interface BusinessProcessesViewProps {
 }
 
 const BusinessProcessesView: React.FC<BusinessProcessesViewProps> = ({ 
-    processes, orgPositions, users, tasks, tables, onSaveProcess, onDeleteProcess, onSaveTask, onOpenTask, autoOpenCreateModal = false
+    processes, orgPositions, users, tasks, tables, currentUser, onSaveProcess, onDeleteProcess, onSaveTask, onOpenTask, autoOpenCreateModal = false
 }) => {
   const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'processes' | 'instances'>('processes');
@@ -209,7 +210,8 @@ const BusinessProcessesView: React.FC<BusinessProcessesViewProps> = ({
           processId: selectedProcess.id,
           processInstanceId: instanceId,
           stepId: firstStep.id,
-          createdAt: new Date().toISOString()
+          createdAt: new Date().toISOString(),
+          createdByUserId: currentUser?.id // Постановщик - пользователь, который запустил процесс
       };
 
       instance.taskIds = [taskId];

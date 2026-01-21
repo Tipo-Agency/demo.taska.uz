@@ -1,0 +1,110 @@
+#!/bin/bash
+# Скрипт для деплоя Telegram бота
+# Использование: sudo ./deploy.sh
+
+# Не завершаем при ошибках в некоторых местах (чтобы не блокировать деплой фронтенда)
+set +e
+
+BOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VENV_DIR="$BOT_DIR/venv"
+SERVICE_NAME="telegram-bot"
+
+echo "🚀 Starting Telegram bot deployment..."
+
+# Проверяем наличие Python
+set -e
+if ! command -v python3 &> /dev/null; then
+    echo "❌ Python 3 is not installed"
+    exit 1
+fi
+set +e
+
+# Создаем виртуальное окружение если его нет
+if [ ! -d "$VENV_DIR" ]; then
+    echo "📦 Creating virtual environment..."
+    python3 -m venv "$VENV_DIR"
+fi
+
+# Активируем виртуальное окружение
+echo "🔧 Activating virtual environment..."
+source "$VENV_DIR/bin/activate"
+
+# Обновляем pip
+echo "⬆️ Upgrading pip..."
+pip install --upgrade pip
+
+# Устанавливаем зависимости
+echo "📥 Installing dependencies..."
+pip install -r "$BOT_DIR/requirements.txt"
+
+# Проверяем наличие .env файла
+if [ ! -f "$BOT_DIR/.env" ]; then
+    echo "⚠️ Warning: .env file not found. Creating from .env.example..."
+    if [ -f "$BOT_DIR/.env.example" ]; then
+        cp "$BOT_DIR/.env.example" "$BOT_DIR/.env"
+        echo "⚠️ Please update .env file with your configuration!"
+    else
+        echo "❌ .env.example not found. Please create .env manually."
+    fi
+fi
+
+# Останавливаем существующий сервис если он запущен
+if systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
+    echo "🛑 Stopping existing service..."
+    sudo systemctl stop "$SERVICE_NAME" || true
+fi
+
+# Определяем пользователя для сервиса
+SERVICE_USER=${SUDO_USER:-$USER}
+if [ -z "$SERVICE_USER" ] || [ "$SERVICE_USER" = "root" ]; then
+    SERVICE_USER=$(whoami)
+fi
+
+# Создаем systemd service файл
+echo "📝 Creating/updating systemd service..."
+sudo tee "/etc/systemd/system/$SERVICE_NAME.service" > /dev/null <<EOF
+[Unit]
+Description=Telegram Bot for Task Management System
+After=network.target
+
+[Service]
+Type=simple
+User=$SERVICE_USER
+WorkingDirectory=$BOT_DIR
+Environment="PATH=$VENV_DIR/bin"
+ExecStart=$VENV_DIR/bin/python $BOT_DIR/bot.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Перезагружаем systemd
+echo "🔄 Reloading systemd..."
+sudo systemctl daemon-reload
+
+# Включаем сервис
+echo "✅ Enabling service..."
+sudo systemctl enable "$SERVICE_NAME"
+
+# Запускаем сервис
+echo "🚀 Starting service..."
+sudo systemctl start "$SERVICE_NAME"
+
+# Проверяем статус
+sleep 3
+if systemctl is-active --quiet "$SERVICE_NAME"; then
+    echo "✅ Telegram bot deployed and running successfully!"
+    echo "📊 Service status:"
+    sudo systemctl status "$SERVICE_NAME" --no-pager -l | head -15 || true
+else
+    echo "⚠️ Service may not be running. Checking logs:"
+    sudo journalctl -u "$SERVICE_NAME" -n 20 --no-pager || true
+    echo "💡 You may need to check the service manually:"
+    echo "   sudo systemctl status $SERVICE_NAME"
+    echo "   sudo journalctl -u $SERVICE_NAME -f"
+    # Не завершаем с ошибкой, чтобы не блокировать деплой фронтенда
+fi

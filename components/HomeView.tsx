@@ -85,19 +85,28 @@ const HomeView: React.FC<HomeViewProps> = ({
       });
   }
 
-  // Задачи на сегодня - исключаем идеи и функции, архивные и выполненные
-  // Показываем все задачи на сегодня, не только назначенные на текущего пользователя
-  const todayTasks = (tasks || []).filter(t => 
+  // Задачи пользователя - исключаем идеи и функции, архивные и выполненные
+  // Показываем задачи назначенные на текущего пользователя (assigneeId или assigneeIds)
+  const myTasks = (tasks || []).filter(t => 
     t && 
     t.entityType !== 'idea' && 
     t.entityType !== 'feature' &&
     !t.isArchived &&
     !['Выполнено', 'Done', 'Завершено'].includes(t.status) && 
-    t.endDate && 
-    t.endDate === todayStr
+    (t.assigneeId === currentUser?.id || t.assigneeIds?.includes(currentUser?.id))
   );
   
-  todayTasks.forEach(t => {
+  // Сортируем: сначала задачи на сегодня, потом остальные
+  const sortedTasks = myTasks.sort((a, b) => {
+    const aIsToday = a.endDate === todayStr;
+    const bIsToday = b.endDate === todayStr;
+    if (aIsToday && !bIsToday) return -1;
+    if (!aIsToday && bIsToday) return 1;
+    return 0;
+  });
+  
+  sortedTasks.forEach(t => {
+    const isToday = t.endDate === todayStr;
     actionItems.push({ 
       id: t.id, 
       type: 'task', 
@@ -105,7 +114,7 @@ const HomeView: React.FC<HomeViewProps> = ({
       subtitle: t.projectId ? 'Проектная задача' : undefined, 
       priority: t.priority === 'Высокий' ? 'high' : 'medium', 
       status: t.status, 
-      time: 'Сегодня', 
+      time: isToday ? 'Сегодня' : (t.endDate ? new Date(t.endDate).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : 'Без срока'), 
       onClick: () => onOpenTask(t) 
     });
   });

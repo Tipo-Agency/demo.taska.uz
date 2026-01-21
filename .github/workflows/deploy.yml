@@ -21,7 +21,27 @@ jobs:
             cd ${{ secrets.SERVER_PATH }}
             git fetch origin
             git reset --hard origin/main
+            
+            # Deploy frontend
+            echo "🚀 Deploying frontend..."
             npm ci
             npm run build
+            
+            # Deploy Telegram bot
+            echo "🤖 Deploying Telegram bot..."
+            if [ -d "telegram-bot" ]; then
+              cd telegram-bot
+              chmod +x deploy.sh
+              # Запускаем с sudo для systemd операций
+              sudo ./deploy.sh || echo "⚠️ Telegram bot deployment failed, but continuing..."
+              cd ..
+            else
+              echo "⚠️ Telegram bot directory not found, skipping..."
+            fi
+            
+            # Reload nginx
+            echo "🔄 Reloading nginx..."
             nginx -t
-            systemctl reload nginx	
+            systemctl reload nginx
+            
+            echo "✅ Deployment completed!"	

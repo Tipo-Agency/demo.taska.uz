@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { PartnerLogo, News, Case, Tag } from '../../types';
 import { api } from '../../backend/api';
 import { uploadFile } from '../../services/firebaseStorage';
-import { Plus, Edit2, Trash2, Image as ImageIcon, Globe, Tag as TagIcon, FileText, Briefcase, X, Check } from 'lucide-react';
+import { Plus, Edit2, Trash2, Image as ImageIcon, Globe, Tag as TagIcon, FileText, Briefcase, X, Check, Bold, Italic, Underline, Heading1, Heading2, List, ListOrdered, Quote, Monitor, Smartphone, Eye } from 'lucide-react';
 import { Card } from '../ui';
 
 interface SitesViewProps {
@@ -661,6 +661,23 @@ const NewsModal: React.FC<{ news: News | null; tags: Tag[]; onSave: (news: News)
   const [selectedTags, setSelectedTags] = useState<string[]>(news?.tags || []);
   const [published, setPublished] = useState(news?.published || false);
   const [uploading, setUploading] = useState(false);
+  const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop');
+  const [showPreview, setShowPreview] = useState(false);
+  const editorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (editorRef.current && news) {
+      editorRef.current.innerHTML = news.content || '<p>Начните писать здесь...</p>';
+    }
+  }, [news?.id]);
+
+  const execCmd = (command: string, value?: string) => {
+    document.execCommand(command, false, value);
+    editorRef.current?.focus();
+    if (editorRef.current) {
+      setContent(editorRef.current.innerHTML);
+    }
+  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -692,14 +709,19 @@ const NewsModal: React.FC<{ news: News | null; tags: Tag[]; onSave: (news: News)
   };
 
   const handleSubmit = () => {
-    if (!title || !content) {
-      alert('Заполните заголовок и содержание');
+    if (!title) {
+      alert('Заполните заголовок');
+      return;
+    }
+    const finalContent = editorRef.current?.innerHTML || content || '';
+    if (!finalContent || finalContent === '<p>Начните писать здесь...</p>' || finalContent.trim() === '') {
+      alert('Заполните содержание');
       return;
     }
     onSave({
       id: news?.id || `news-${Date.now()}`,
       title,
-      content,
+      content: finalContent,
       excerpt,
       imageUrl: imageUrl || undefined,
       tags: selectedTags,
@@ -725,13 +747,13 @@ const NewsModal: React.FC<{ news: News | null; tags: Tag[]; onSave: (news: News)
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Краткое описание</label>
+            <label className="block text-sm font-medium mb-1">Аннотация</label>
             <textarea
               value={excerpt}
               onChange={e => setExcerpt(e.target.value)}
               rows={2}
               className="w-full border rounded px-3 py-2"
-              placeholder="Краткое описание для превью"
+              placeholder="Аннотация для превью"
             />
           </div>
           <div>
@@ -751,16 +773,93 @@ const NewsModal: React.FC<{ news: News | null; tags: Tag[]; onSave: (news: News)
             {uploading && <div className="text-sm text-gray-500 mt-1">Загрузка...</div>}
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Содержание *</label>
-            <textarea
-              value={content}
-              onChange={e => setContent(e.target.value)}
-              rows={12}
-              className="w-full border rounded px-3 py-2 font-mono text-sm"
-              placeholder="HTML контент или обычный текст. Для форматирования используйте HTML теги: &lt;p&gt;, &lt;strong&gt;, &lt;em&gt;, &lt;ul&gt;, &lt;li&gt; и т.д."
-            />
-            <div className="text-xs text-gray-500 mt-1">
-              Поддерживается HTML. Используйте теги для форматирования текста.
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium">Содержание *</label>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowPreview(!showPreview)}
+                  className={`px-2 py-1 rounded text-xs flex items-center gap-1 ${
+                    showPreview ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700'
+                  }`}
+                >
+                  <Eye size={14} /> {showPreview ? 'Скрыть' : 'Показать'} предпросмотр
+                </button>
+                {showPreview && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setPreviewMode('desktop')}
+                      className={`px-2 py-1 rounded text-xs flex items-center gap-1 ${
+                        previewMode === 'desktop' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700'
+                      }`}
+                    >
+                      <Monitor size={14} /> Десктоп
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPreviewMode('mobile')}
+                      className={`px-2 py-1 rounded text-xs flex items-center gap-1 ${
+                        previewMode === 'mobile' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700'
+                      }`}
+                    >
+                      <Smartphone size={14} /> Мобилка
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+            <div className="border rounded-lg overflow-hidden">
+              {/* Toolbar */}
+              <div className="bg-gray-100 dark:bg-gray-800 border-b px-2 py-1 flex items-center gap-1 flex-wrap">
+                <ToolbarBtn icon={<Heading1 size={16}/>} onClick={() => execCmd('formatBlock', 'H1')} title="Заголовок 1"/>
+                <ToolbarBtn icon={<Heading2 size={16}/>} onClick={() => execCmd('formatBlock', 'H2')} title="Заголовок 2"/>
+                <div className="w-px h-4 bg-gray-300 dark:bg-gray-600 mx-1"></div>
+                <ToolbarBtn icon={<Bold size={16}/>} onClick={() => execCmd('bold')} title="Жирный"/>
+                <ToolbarBtn icon={<Italic size={16}/>} onClick={() => execCmd('italic')} title="Курсив"/>
+                <ToolbarBtn icon={<Underline size={16}/>} onClick={() => execCmd('underline')} title="Подчеркнутый"/>
+                <div className="w-px h-4 bg-gray-300 dark:bg-gray-600 mx-1"></div>
+                <ToolbarBtn icon={<List size={16}/>} onClick={() => execCmd('insertUnorderedList')} title="Список"/>
+                <ToolbarBtn icon={<ListOrdered size={16}/>} onClick={() => execCmd('insertOrderedList')} title="Нумерованный список"/>
+                <ToolbarBtn icon={<Quote size={16}/>} onClick={() => execCmd('formatBlock', 'blockquote')} title="Цитата"/>
+              </div>
+              {/* Editor/Preview */}
+              <div className="flex">
+                <div className={`${showPreview ? 'w-1/2' : 'w-full'} border-r`}>
+                  <div
+                    ref={editorRef}
+                    contentEditable
+                    suppressContentEditableWarning={true}
+                    onInput={(e) => {
+                      if (editorRef.current) {
+                        setContent(editorRef.current.innerHTML);
+                      }
+                    }}
+                    className="min-h-[400px] p-4 outline-none text-gray-800 dark:text-gray-200"
+                    style={{ whiteSpace: 'pre-wrap' }}
+                  />
+                </div>
+                {showPreview && previewMode === 'desktop' && (
+                  <div className="w-1/2 p-4 bg-gray-50 dark:bg-gray-900 overflow-y-auto max-h-[400px]">
+                    <div className="max-w-4xl mx-auto bg-white dark:bg-[#1a1a1a] p-6 rounded shadow">
+                      {imageUrl && <img src={imageUrl} alt={title} className="w-full h-auto mb-4 rounded" />}
+                      <h1 className="text-3xl font-bold mb-4">{title || 'Заголовок'}</h1>
+                      {excerpt && <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">{excerpt}</p>}
+                      <div className="prose dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: content || '<p>Контент...</p>' }} />
+                    </div>
+                  </div>
+                )}
+                {showPreview && previewMode === 'mobile' && (
+                  <div className="w-1/2 p-4 bg-gray-50 dark:bg-gray-900 overflow-y-auto max-h-[400px]">
+                    <div className="max-w-sm mx-auto bg-white dark:bg-[#1a1a1a] p-4 rounded shadow">
+                      {imageUrl && <img src={imageUrl} alt={title} className="w-full h-auto mb-3 rounded" />}
+                      <h1 className="text-xl font-bold mb-3">{title || 'Заголовок'}</h1>
+                      {excerpt && <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{excerpt}</p>}
+                      <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: content || '<p>Контент...</p>' }} />
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           <div>
@@ -800,6 +899,18 @@ const NewsModal: React.FC<{ news: News | null; tags: Tag[]; onSave: (news: News)
     </div>
   );
 };
+
+// ToolbarBtn component
+const ToolbarBtn: React.FC<{icon: React.ReactNode, onClick: () => void, title: string}> = ({ icon, onClick, title }) => (
+  <button
+    onClick={onClick}
+    className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+    title={title}
+    type="button"
+  >
+    {icon}
+  </button>
+);
 
 // CaseModal - модальное окно для кейса
 const CaseModal: React.FC<{ caseItem: Case | null; tags: Tag[]; onSave: (caseItem: Case) => void; onClose: () => void }> = ({ caseItem, tags, onSave, onClose }) => {

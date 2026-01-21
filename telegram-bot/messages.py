@@ -1,0 +1,223 @@
+"""
+Форматирование сообщений для Telegram бота
+"""
+from typing import Dict, Any, List, Optional
+from datetime import datetime
+import pytz
+
+def format_task_message(task: Dict[str, Any], users: List[Dict[str, Any]], projects: List[Dict[str, Any]] = None) -> str:
+    """Форматировать сообщение о задаче"""
+    projects = projects or []
+    
+    assignee = None
+    if task.get('assigneeId'):
+        assignee = next((u for u in users if u.get('id') == task.get('assigneeId')), None)
+    
+    creator = None
+    if task.get('createdByUserId'):
+        creator = next((u for u in users if u.get('id') == task.get('createdByUserId')), None)
+    
+    project = None
+    if task.get('projectId'):
+        project = next((p for p in projects if p.get('id') == task.get('projectId')), None)
+    
+    message = f"📋 Задача #{task.get('id', 'N/A')[:8]}\n\n"
+    message += f"Название: {task.get('title', 'Без названия')}\n"
+    
+    if creator:
+        message += f"Постановщик: {creator.get('name', 'Неизвестно')}\n"
+    
+    if project:
+        message += f"Проект: {project.get('name', 'Неизвестно')}\n"
+    
+    if task.get('priority'):
+        message += f"Приоритет: {task.get('priority')}\n"
+    
+    if task.get('status'):
+        message += f"Статус: {task.get('status')}\n"
+    
+    if task.get('endDate'):
+        try:
+            end_date = datetime.fromisoformat(task.get('endDate').replace('Z', '+00:00'))
+            message += f"Срок: {end_date.strftime('%d.%m.%Y')}\n"
+        except:
+            message += f"Срок: {task.get('endDate')}\n"
+    
+    if assignee:
+        message += f"Исполнитель: {assignee.get('name', 'Не назначено')}\n"
+    else:
+        message += "Исполнитель: Не назначено\n"
+    
+    if task.get('description'):
+        message += f"\nОписание:\n{task.get('description')[:200]}"
+        if len(task.get('description', '')) > 200:
+            message += "..."
+    
+    return message
+
+def format_deal_message(deal: Dict[str, Any], clients: List[Dict[str, Any]], users: List[Dict[str, Any]], funnels: List[Dict[str, Any]] = None) -> str:
+    """Форматировать сообщение о сделке"""
+    funnels = funnels or []
+    
+    client = None
+    if deal.get('clientId'):
+        client = next((c for c in clients if c.get('id') == deal.get('clientId')), None)
+    
+    assignee = None
+    if deal.get('assigneeId'):
+        assignee = next((u for u in users if u.get('id') == deal.get('assigneeId')), None)
+    
+    funnel = None
+    stage = None
+    if deal.get('funnelId'):
+        funnel = next((f for f in funnels if f.get('id') == deal.get('funnelId')), None)
+        if funnel and deal.get('stage'):
+            stage = next((s for s in funnel.get('stages', []) if s.get('id') == deal.get('stage')), None)
+    
+    message = f"🎯 Заявка #{deal.get('id', 'N/A')[:8]}\n\n"
+    message += f"Название: {deal.get('title', deal.get('contactName', 'Без названия'))}\n"
+    
+    if client:
+        message += f"Клиент: {client.get('name', client.get('companyName', 'Неизвестно'))}\n"
+    elif deal.get('contactName'):
+        message += f"Клиент: {deal.get('contactName')}\n"
+    
+    if deal.get('amount'):
+        message += f"Сумма: {deal.get('amount', 0):,} {deal.get('currency', 'UZS')}\n"
+    
+    if funnel:
+        message += f"Воронка: {funnel.get('name', 'Неизвестно')}\n"
+    
+    if stage:
+        message += f"Стадия: {stage.get('name', deal.get('stage', 'Неизвестно'))}\n"
+    elif deal.get('stage'):
+        message += f"Стадия: {deal.get('stage')}\n"
+    
+    if assignee:
+        message += f"Ответственный: {assignee.get('name', 'Не назначено')}\n"
+    else:
+        message += "Ответственный: Не назначено\n"
+    
+    if deal.get('createdAt'):
+        try:
+            created_date = datetime.fromisoformat(deal.get('createdAt').replace('Z', '+00:00'))
+            message += f"Дата создания: {created_date.strftime('%d.%m.%Y')}\n"
+        except:
+            pass
+    
+    if deal.get('description'):
+        message += f"\nОписание:\n{deal.get('description')[:200]}"
+        if len(deal.get('description', '')) > 200:
+            message += "..."
+    
+    return message
+
+def format_daily_reminder(today_tasks: List[Dict[str, Any]], overdue_tasks: List[Dict[str, Any]]) -> str:
+    """Форматировать ежедневное напоминание"""
+    message = "📋 Ежедневный обзор задач\n\n"
+    
+    if today_tasks:
+        message += f"✅ Текущие задачи ({len(today_tasks)}):\n"
+        for i, task in enumerate(today_tasks[:10], 1):  # Ограничиваем 10 задачами
+            end_date = task.get('endDate', '')
+            try:
+                if end_date:
+                    date_obj = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+                    date_str = date_obj.strftime('%d.%m')
+                else:
+                    date_str = 'Без срока'
+            except:
+                date_str = end_date or 'Без срока'
+            
+            message += f"{i}. {task.get('title', 'Без названия')} (Срок: {date_str})\n"
+        
+        if len(today_tasks) > 10:
+            message += f"... и еще {len(today_tasks) - 10} задач\n"
+        message += "\n"
+    else:
+        message += "✅ Текущие задачи: нет\n\n"
+    
+    if overdue_tasks:
+        message += f"⚠️ Просроченные задачи ({len(overdue_tasks)}):\n"
+        for i, task in enumerate(overdue_tasks[:10], 1):  # Ограничиваем 10 задачами
+            end_date = task.get('endDate', '')
+            try:
+                if end_date:
+                    date_obj = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+                    today = datetime.now(pytz.timezone('Asia/Tashkent')).date()
+                    task_date = date_obj.date()
+                    days_overdue = (today - task_date).days
+                    message += f"{i}. {task.get('title', 'Без названия')} (Просрочено на {days_overdue} {'день' if days_overdue == 1 else 'дня' if days_overdue < 5 else 'дней'})\n"
+                else:
+                    message += f"{i}. {task.get('title', 'Без названия')} (Без срока)\n"
+            except:
+                message += f"{i}. {task.get('title', 'Без названия')}\n"
+        
+        if len(overdue_tasks) > 10:
+            message += f"... и еще {len(overdue_tasks) - 10} задач\n"
+    else:
+        message += "⚠️ Просроченные задачи: нет\n"
+    
+    return message
+
+def format_weekly_report(stats: Dict[str, Any]) -> str:
+    """Форматировать еженедельный отчет"""
+    message = f"📊 Еженедельный отчет (неделя с {stats.get('week_start', 'N/A')} по {stats.get('week_end', 'N/A')})\n\n"
+    message += f"✅ Выполнено задач: {stats.get('completed', 0)}\n"
+    message += f"⚠️ Просрочено задач: {stats.get('overdue', 0)}\n\n"
+    
+    top_users = stats.get('top_users', [])
+    if top_users:
+        message += "🏆 Лучшие сотрудники:\n"
+        for i, user_stat in enumerate(top_users[:5], 1):
+            name = user_stat.get('name', 'Неизвестно')
+            completed = user_stat.get('completed', 0)
+            total = user_stat.get('total', 0)
+            percent = (completed / total * 100) if total > 0 else 0
+            
+            emoji = "🎉" if percent >= 100 else "👏" if percent >= 90 else "👍"
+            message += f"{i}. {name} - {completed} задач ({percent:.0f}% выполнено) - {emoji}\n"
+        message += "\n"
+    
+    bottom_users = stats.get('bottom_users', [])
+    if bottom_users:
+        message += "📈 Нужно улучшить:\n"
+        for user_stat in bottom_users[:3]:
+            name = user_stat.get('name', 'Неизвестно')
+            completed = user_stat.get('completed', 0)
+            total = user_stat.get('total', 0)
+            percent = (completed / total * 100) if total > 0 else 0
+            
+            emoji = "💪" if percent >= 60 else "📝"
+            message += f"- {name} - {completed} задач ({percent:.0f}% выполнено) - {emoji}\n"
+        message += "\n"
+    
+    message += "Продолжайте в том же духе! 🚀"
+    
+    return message
+
+def format_successful_deal(deal: Dict[str, Any], client: Optional[Dict[str, Any]], user: Optional[Dict[str, Any]]) -> str:
+    """Форматировать сообщение об успешной сделке для группового чата"""
+    message = "🎉 Поздравляем! Новая успешная сделка!\n\n"
+    
+    if client:
+        message += f"Клиент: {client.get('name', client.get('companyName', 'Неизвестно'))}\n"
+    elif deal.get('contactName'):
+        message += f"Клиент: {deal.get('contactName')}\n"
+    
+    if deal.get('amount'):
+        message += f"Сумма: {deal.get('amount', 0):,} {deal.get('currency', 'UZS')}\n"
+    
+    if user:
+        message += f"Менеджер: {user.get('name', 'Неизвестно')}\n"
+    
+    if deal.get('updatedAt'):
+        try:
+            date_obj = datetime.fromisoformat(deal.get('updatedAt').replace('Z', '+00:00'))
+            message += f"Дата: {date_obj.strftime('%d.%m.%Y')}\n"
+        except:
+            pass
+    
+    message += "\nОтличная работа! 🚀"
+    
+    return message

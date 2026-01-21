@@ -165,7 +165,7 @@ export const useTaskLogic = (showNotification: (msg: string) => void, currentUse
             category: taskData.category,
             createdAt: taskData.createdAt || now,
             updatedAt: now,
-            createdByUserId: taskData.createdByUserId
+            createdByUserId: taskData.createdByUserId || currentUser?.id // Если не указан, используем текущего пользователя
         };
         
         // Если задача создана из контент-плана, добавляем системное сообщение

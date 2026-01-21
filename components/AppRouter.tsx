@@ -235,7 +235,7 @@ export const AppRouter: React.FC<AppRouterProps> = (props) => {
   }
 
   if (view === 'sales-funnel' || view === 'clients') {
-      return <CRMModule view={view} deals={props.deals} clients={props.clients} contracts={props.contracts} oneTimeDeals={props.oneTimeDeals} accountsReceivable={props.accountsReceivable} users={props.users} salesFunnels={props.salesFunnels} projects={props.projects} tasks={props.allTasks} actions={actions} />;
+      return <CRMModule view={view} deals={props.deals} clients={props.clients} contracts={props.contracts} oneTimeDeals={props.oneTimeDeals} accountsReceivable={props.accountsReceivable} users={props.users} salesFunnels={props.salesFunnels} projects={props.projects} tasks={props.allTasks} currentUser={props.currentUser} actions={actions} />;
   }
 
   if (view === 'finance') {

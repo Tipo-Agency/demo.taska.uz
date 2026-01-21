@@ -234,7 +234,9 @@ const ContentPlanView: React.FC<ContentPlanViewProps> = ({
               entityType: 'task',
               title: `Контент: ${editingPost.topic}`,
               contentPostId: editingPost.id,
-              source: activeTable?.name || 'Контент-план'
+              source: activeTable?.name || 'Контент-план',
+              createdAt: new Date().toISOString(),
+              createdByUserId: undefined // Будет установлен в useTaskLogic из currentUser
           });
       }
   };
@@ -243,7 +245,9 @@ const ContentPlanView: React.FC<ContentPlanViewProps> = ({
       if (onCreateTask) {
           onCreateTask({
               entityType: 'task',
-              source: activeTable?.name || 'Контент-план'
+              source: activeTable?.name || 'Контент-план',
+              createdAt: new Date().toISOString(),
+              createdByUserId: undefined // Будет установлен в useTaskLogic из currentUser
           });
       }
   };

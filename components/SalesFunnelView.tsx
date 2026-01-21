@@ -32,7 +32,7 @@ const STAGES = [
     { id: 'negotiation', label: 'Переговоры', color: 'bg-orange-200 dark:bg-orange-900' },
 ];
 
-const SalesFunnelView: React.FC<SalesFunnelViewProps> = ({ deals, clients, users, projects = [], tasks = [], salesFunnels = [], onSaveDeal, onDeleteDeal, onCreateTask, onCreateClient, onOpenTask, onOpenSettings, autoOpenCreateModal = false }) => {
+const SalesFunnelView: React.FC<SalesFunnelViewProps> = ({ deals, clients, users, projects = [], tasks = [], salesFunnels = [], currentUser, onSaveDeal, onDeleteDeal, onCreateTask, onCreateClient, onOpenTask, onOpenSettings, autoOpenCreateModal = false }) => {
   const [viewMode, setViewMode] = useState<'kanban' | 'list' | 'rejected'>('kanban');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
@@ -278,6 +278,8 @@ const SalesFunnelView: React.FC<SalesFunnelViewProps> = ({ deals, clients, users
       startDate: new Date().toISOString().split('T')[0],
       endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       tableId: '', // Для обычных задач tableId не используется
+      createdAt: new Date().toISOString(),
+      createdByUserId: currentUser?.id || editingDeal.assigneeId || undefined // Постановщик - текущий пользователь или менеджер сделки
     };
     
     onCreateTask(task);

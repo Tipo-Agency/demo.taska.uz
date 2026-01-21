@@ -14,11 +14,12 @@ interface CRMModuleProps {
   users: User[];
   projects?: Project[];
   tasks?: Task[];
+  currentUser?: User | null;
   actions: any;
   autoOpenCreateModal?: boolean;
 }
 
-export const CRMModule: React.FC<CRMModuleProps> = ({ view, deals, clients, contracts, oneTimeDeals = [], accountsReceivable = [], users, salesFunnels = [], projects, tasks, actions, autoOpenCreateModal = false }) => {
+export const CRMModule: React.FC<CRMModuleProps> = ({ view, deals, clients, contracts, oneTimeDeals = [], accountsReceivable = [], users, salesFunnels = [], projects, tasks, currentUser, actions, autoOpenCreateModal = false }) => {
   if (view === 'sales-funnel') {
       return <SalesFunnelView 
         deals={deals} 
@@ -27,6 +28,7 @@ export const CRMModule: React.FC<CRMModuleProps> = ({ view, deals, clients, cont
         projects={projects}
         tasks={tasks}
         salesFunnels={salesFunnels}
+        currentUser={currentUser}
         onSaveDeal={actions.saveDeal} 
         onDeleteDeal={actions.deleteDeal}
         onCreateTask={actions.openTaskModal ? (task) => actions.openTaskModal(task) : undefined}

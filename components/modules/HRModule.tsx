@@ -32,6 +32,7 @@ export const HRModule: React.FC<HRModuleProps> = ({ view, employees, users, depa
             users={users} 
             tasks={tasks}
             tables={tables}
+            currentUser={currentUser}
             onSaveProcess={actions.saveProcess} 
             onDeleteProcess={actions.deleteProcess}
             onSaveTask={actions.saveTask}

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Project, Task, User, StatusOption, PriorityOption, TableCollection, TaskAttachment, Doc } from '../types';
-import { X, Calendar as CalendarIcon, Users, Tag, Plus, CheckCircle2, Archive, AlignLeft, Paperclip, Send, File as FileIcon, Image as ImageIcon, MessageSquare, Download, Flag, Link as LinkIcon, Check, ChevronDown, Folder, ExternalLink, FileText } from 'lucide-react';
+import { X, Calendar as CalendarIcon, Users, Tag, Plus, CheckCircle2, Archive, AlignLeft, Paperclip, Send, File as FileIcon, Image as ImageIcon, MessageSquare, Download, Flag, Link as LinkIcon, Check, ChevronDown, Folder, ExternalLink, FileText, User as UserIcon } from 'lucide-react';
 import { DynamicIcon } from './AppIcons';
 import { STANDARD_CATEGORIES } from './FunctionalityView';
 import { FilePreviewModal } from './FilePreviewModal';
@@ -229,7 +229,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
       source, // Используем определенный source
       category: taskType === 'feature' ? (category || undefined) : currentTask?.category, // Сохраняем category для функций
       createdAt: currentTask?.createdAt || new Date().toISOString(), // Добавляем createdAt
-      createdByUserId: currentTask?.createdByUserId || (entityType === 'idea' ? currentUser?.id : undefined) // Для идей обязательно
+      createdByUserId: currentTask?.createdByUserId || currentUser?.id // Постановщик - текущий пользователь (или из задачи, если редактирование)
     });
     
     // Обновляем initialValuesRef после сохранения
@@ -648,6 +648,20 @@ const TaskModal: React.FC<TaskModalProps> = ({
                             )}
                         </div>
                     </div>
+
+                    {/* Постановщик - только для существующих задач */}
+                    {currentTask?.id && currentTask?.createdByUserId && (() => {
+                        const creator = users.find(u => u.id === currentTask.createdByUserId);
+                        return creator ? (
+                            <div className="flex items-center gap-3">
+                                <div className="w-28 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase flex items-center gap-2"><UserIcon size={16}/> Постановщик</div>
+                                <div className="flex-1 flex items-center gap-2 bg-gray-50 dark:bg-[#252525] border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2.5">
+                                    <img src={creator.avatar} className="w-8 h-8 rounded-full border border-gray-200 dark:border-gray-600 object-cover object-center" />
+                                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{creator.name}</span>
+                                </div>
+                            </div>
+                        ) : null;
+                    })()}
 
                     {/* Module */}
                     <div className="flex items-center gap-3">
