@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Meeting, User, TableCollection } from '../types';
 import { Calendar, Users, Plus, X, List, LayoutGrid, Clock, Repeat, Check, Trash2, Box } from 'lucide-react';
 import { TaskSelect } from './TaskSelect';
+import { normalizeDateForInput } from '../utils/dateUtils';
 
 interface MeetingsViewProps {
   meetings: Meeting[];
@@ -50,7 +51,7 @@ const MeetingsView: React.FC<MeetingsViewProps> = ({ meetings = [], users, table
   const handleOpenEdit = (meeting: Meeting) => {
       setEditingMeeting(meeting);
       setTitle(meeting.title);
-      setDate(meeting.date);
+      setDate(normalizeDateForInput(meeting.date) || new Date().toISOString().split('T')[0]);
       setTime(meeting.time);
       setRecurrence(meeting.recurrence || 'none');
       setSelectedParticipants(meeting.participantIds || []);
@@ -341,7 +342,7 @@ const MeetingsView: React.FC<MeetingsViewProps> = ({ meetings = [], users, table
                                 <input 
                                     required 
                                     type="date" 
-                                    value={date} 
+                                    value={normalizeDateForInput(date) || date} 
                                     onChange={e => setDate(e.target.value)} 
                                     className="w-full bg-white dark:bg-[#1e1e1e] text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-[#444] rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                                 />

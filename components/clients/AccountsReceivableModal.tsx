@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { AccountsReceivable, Client, Deal } from '../../types';
 import { X, Plus, Trash2, FileText, Receipt } from 'lucide-react';
 import { TaskSelect } from '../TaskSelect';
+import { normalizeDateForInput } from '../../utils/dateUtils';
 
 interface ReceivableItem {
   id: string;
@@ -45,11 +46,11 @@ export const AccountsReceivableModal: React.FC<AccountsReceivableModalProps> = (
       if (editingReceivable) {
         // Режим редактирования - показываем одну запись
         setReceivableClientId(editingReceivable.clientId);
-        setReceivableDueDate(editingReceivable.dueDate);
+        setReceivableDueDate(normalizeDateForInput(editingReceivable.dueDate) || '');
         setReceivableStatus(editingReceivable.status);
         setReceivableDescription(editingReceivable.description);
         setReceivablePaidAmount(editingReceivable.paidAmount?.toString() || '');
-        setReceivablePaidDate(editingReceivable.paidDate || '');
+        setReceivablePaidDate(normalizeDateForInput(editingReceivable.paidDate) || '');
         // Для редактирования создаем одну строку
         setReceivableItems([{
           id: '1',
@@ -268,7 +269,7 @@ export const AccountsReceivableModal: React.FC<AccountsReceivableModalProps> = (
               <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">Срок погашения *</label>
               <input 
                 type="date" 
-                value={receivableDueDate} 
+                value={normalizeDateForInput(receivableDueDate) || receivableDueDate} 
                 onChange={e => setReceivableDueDate(e.target.value)} 
                 className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-[#333] text-gray-900 dark:text-gray-100" 
                 required
@@ -302,7 +303,7 @@ export const AccountsReceivableModal: React.FC<AccountsReceivableModalProps> = (
               <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">Дата оплаты</label>
               <input 
                 type="date" 
-                value={receivablePaidDate} 
+                value={normalizeDateForInput(receivablePaidDate) || receivablePaidDate} 
                 onChange={e => setReceivablePaidDate(e.target.value)} 
                 className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-[#333] text-gray-900 dark:text-gray-100"
               />

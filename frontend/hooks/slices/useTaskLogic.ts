@@ -4,6 +4,7 @@ import { Task, Project, StatusOption, PriorityOption, User, TaskComment, TaskAtt
 import { api } from '../../../backend/api';
 import { sendTelegramNotification, formatNewTaskMessage, formatStatusChangeMessage } from '../../../services/telegramService';
 import { uploadTaskAttachment } from '../../../services/firebaseStorage';
+import { getTodayLocalDate, getDateDaysFromNow } from '../../../utils/dateUtils';
 
 export const useTaskLogic = (showNotification: (msg: string) => void, currentUser: User | null, users: User[], automationRules: AutomationRule[] = [], docs: Doc[] = [], onSaveDoc?: (docData: any, tableId?: string) => Doc | void) => {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -80,9 +81,21 @@ export const useTaskLogic = (showNotification: (msg: string) => void, currentUse
         if (oldTask) {
             // Обновляем существующую задачу
             const oldStatus = oldTask.status;
+            
+            // Для задач (не идей) даты обязательны - если не указаны, используем дату создания или текущую дату
+            const createdAtDate = oldTask.createdAt ? new Date(oldTask.createdAt).toISOString().split('T')[0] : getTodayLocalDate();
+            const defaultStartDate = oldTask.startDate || createdAtDate;
+            const defaultEndDate = oldTask.endDate || createdAtDate;
+            
+            // Определяем, является ли это задачей (не идеей)
+            const isTask = (taskData.entityType || oldTask.entityType || 'task') !== 'idea';
+            
             const newTask = { 
                 ...oldTask, 
-                ...taskData, 
+                ...taskData,
+                // Для задач даты обязательны - если не указаны, используем старые значения или дату создания
+                startDate: isTask ? (taskData.startDate || defaultStartDate) : taskData.startDate,
+                endDate: isTask ? (taskData.endDate || defaultEndDate) : taskData.endDate,
                 dealId: taskData.dealId !== undefined ? taskData.dealId : oldTask.dealId,
                 source: taskData.source !== undefined ? taskData.source : oldTask.source,
                 category: taskData.category !== undefined ? taskData.category : oldTask.category,
@@ -98,6 +111,9 @@ export const useTaskLogic = (showNotification: (msg: string) => void, currentUse
             }
         } else {
             // Задача с таким id не существует - создаем новую
+            const isTask = (taskData.entityType || 'task') !== 'idea';
+            const createdAtDate = taskData.createdAt ? new Date(taskData.createdAt).toISOString().split('T')[0] : getTodayLocalDate();
+            
             const newTask: Task = {
                 id: taskData.id,
                 entityType: taskData.entityType || 'task',
@@ -108,8 +124,9 @@ export const useTaskLogic = (showNotification: (msg: string) => void, currentUse
                 assigneeId: taskData.assigneeId || null,
                 assigneeIds: taskData.assigneeIds || (taskData.assigneeId ? [taskData.assigneeId] : []),
                 projectId: taskData.projectId || null,
-                startDate: taskData.startDate || new Date().toISOString().split('T')[0],
-                endDate: taskData.endDate || new Date().toISOString().split('T')[0],
+                // Для задач даты обязательны - используем переданные или дату создания
+                startDate: isTask ? (taskData.startDate || createdAtDate) : taskData.startDate,
+                endDate: isTask ? (taskData.endDate || createdAtDate) : taskData.endDate,
                 isArchived: false,
                 description: taskData.description,
                 comments: [],
@@ -140,6 +157,9 @@ export const useTaskLogic = (showNotification: (msg: string) => void, currentUse
     } else {
         // Создаем новую задачу без id
         const now = new Date().toISOString();
+        const isTask = (taskData.entityType || 'task') !== 'idea';
+        const createdAtDate = taskData.createdAt ? new Date(taskData.createdAt).toISOString().split('T')[0] : getTodayLocalDate();
+        
         const newTask: Task = {
             id: `task-${Date.now()}`, 
             entityType: taskData.entityType || 'task',
@@ -150,21 +170,9 @@ export const useTaskLogic = (showNotification: (msg: string) => void, currentUse
             assigneeId: taskData.assigneeId || null,
             assigneeIds: taskData.assigneeIds || (taskData.assigneeId ? [taskData.assigneeId] : []),
             projectId: taskData.projectId || null,
-            startDate: taskData.startDate || (() => {
-                const now = new Date();
-                const year = now.getFullYear();
-                const month = String(now.getMonth() + 1).padStart(2, '0');
-                const day = String(now.getDate()).padStart(2, '0');
-                return `${year}-${month}-${day}`;
-            })(),
-            endDate: taskData.endDate || (() => {
-                const now = new Date();
-                now.setDate(now.getDate() + 7);
-                const year = now.getFullYear();
-                const month = String(now.getMonth() + 1).padStart(2, '0');
-                const day = String(now.getDate()).padStart(2, '0');
-                return `${year}-${month}-${day}`;
-            })(), 
+            // Для задач даты обязательны - используем переданные или дату создания (для endDate - +7 дней)
+            startDate: isTask ? (taskData.startDate || createdAtDate) : taskData.startDate,
+            endDate: isTask ? (taskData.endDate || getDateDaysFromNow(7)) : taskData.endDate,
             isArchived: false,
             description: taskData.description,
             comments: [],

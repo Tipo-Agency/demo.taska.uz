@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Deal, Client } from '../../types';
 import { X } from 'lucide-react';
 import { TaskSelect } from '../TaskSelect';
+import { normalizeDateForInput } from '../../utils/dateUtils';
 
 interface OneTimeDealModalProps {
   isOpen: boolean;
@@ -38,13 +39,13 @@ export const OneTimeDealModal: React.FC<OneTimeDealModalProps> = ({
       if (editingDeal) {
         setOneTimeDealClientId(editingDeal.clientId);
         setOneTimeDealNumber(editingDeal.number || '');
-        setOneTimeDealDate(editingDeal.date || new Date().toISOString().split('T')[0]);
+        setOneTimeDealDate(normalizeDateForInput(editingDeal.date) || new Date().toISOString().split('T')[0]);
         setOneTimeDealAmount(editingDeal.amount.toString());
         setOneTimeDealDescription(editingDeal.description);
         setOneTimeDealStatus(editingDeal.status);
-        setOneTimeDealDueDate(editingDeal.dueDate || '');
+        setOneTimeDealDueDate(normalizeDateForInput(editingDeal.dueDate) || '');
         setOneTimeDealPaidAmount(editingDeal.paidAmount?.toString() || '');
-        setOneTimeDealPaidDate(editingDeal.paidDate || '');
+        setOneTimeDealPaidDate(normalizeDateForInput(editingDeal.paidDate) || '');
         setOneTimeDealNotes(editingDeal.notes || '');
       } else {
         setOneTimeDealClientId(clientId || '');
@@ -150,7 +151,7 @@ export const OneTimeDealModal: React.FC<OneTimeDealModalProps> = ({
               <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">Дата сделки *</label>
               <input 
                 type="date" 
-                value={oneTimeDealDate} 
+                value={normalizeDateForInput(oneTimeDealDate) || oneTimeDealDate} 
                 onChange={e => setOneTimeDealDate(e.target.value)} 
                 className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-[#333] text-gray-900 dark:text-gray-100" 
                 required
@@ -196,7 +197,7 @@ export const OneTimeDealModal: React.FC<OneTimeDealModalProps> = ({
               <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">Срок оплаты</label>
               <input 
                 type="date" 
-                value={oneTimeDealDueDate} 
+                value={normalizeDateForInput(oneTimeDealDueDate) || oneTimeDealDueDate} 
                 onChange={e => setOneTimeDealDueDate(e.target.value)} 
                 className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-[#333] text-gray-900 dark:text-gray-100"
               />
@@ -215,7 +216,7 @@ export const OneTimeDealModal: React.FC<OneTimeDealModalProps> = ({
             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">Дата оплаты</label>
             <input 
               type="date" 
-              value={oneTimeDealPaidDate} 
+              value={normalizeDateForInput(oneTimeDealPaidDate) || oneTimeDealPaidDate} 
               onChange={e => setOneTimeDealPaidDate(e.target.value)} 
               className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-[#333] text-gray-900 dark:text-gray-100"
             />

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Deal, Client } from '../../types';
 import { X } from 'lucide-react';
 import { TaskSelect } from '../TaskSelect';
+import { normalizeDateForInput } from '../../utils/dateUtils';
 
 interface ContractModalProps {
   isOpen: boolean;
@@ -33,7 +34,7 @@ export const ContractModal: React.FC<ContractModalProps> = ({
       if (editingContract) {
         setContractNumber(editingContract.number);
         setContractAmount(editingContract.amount.toString());
-        setContractStartDate(editingContract.startDate || editingContract.date || '');
+        setContractStartDate(normalizeDateForInput(editingContract.startDate || editingContract.date) || '');
         setContractPaymentDay((editingContract.paymentDay || 5).toString());
         setContractStatus(editingContract.status as 'active' | 'pending' | 'completed');
         setContractServices(editingContract.description);
@@ -119,7 +120,7 @@ export const ContractModal: React.FC<ContractModalProps> = ({
               <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">Дата подписания</label>
               <input 
                 type="date" 
-                value={contractStartDate} 
+                value={normalizeDateForInput(contractStartDate) || contractStartDate} 
                 onChange={e => setContractStartDate(e.target.value)} 
                 className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-[#333] text-gray-900 dark:text-gray-100"
               />

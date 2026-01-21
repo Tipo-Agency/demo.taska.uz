@@ -5,7 +5,7 @@ import { X, Calendar as CalendarIcon, Users, Tag, Plus, CheckCircle2, Archive, A
 import { DynamicIcon } from './AppIcons';
 import { STANDARD_CATEGORIES } from './FunctionalityView';
 import { FilePreviewModal } from './FilePreviewModal';
-import { getTodayLocalDate, getDateDaysFromNow } from '../utils/dateUtils';
+import { getTodayLocalDate, getDateDaysFromNow, normalizeDateForInput } from '../utils/dateUtils';
 
 interface TaskModalProps {
   users: User[];
@@ -102,8 +102,8 @@ const TaskModal: React.FC<TaskModalProps> = ({
         const newProjectId = currentTask.projectId || '';
         const newAssigneeId = currentTask.assigneeId || '';
         const newAssigneeIds = currentTask.assigneeIds || (currentTask.assigneeId ? [currentTask.assigneeId] : []);
-        const newStartDate = currentTask.startDate || getTodayLocalDate();
-        const newEndDate = currentTask.endDate || getDateDaysFromNow(7);
+        const newStartDate = normalizeDateForInput(currentTask.startDate) || getTodayLocalDate();
+        const newEndDate = normalizeDateForInput(currentTask.endDate) || getDateDaysFromNow(7);
         const newStatus = currentTask.status || statuses[0]?.name || '';
         const newCategory = currentTask.category || '';
         
@@ -142,8 +142,8 @@ const TaskModal: React.FC<TaskModalProps> = ({
         const newStatus = currentTask.status || statuses[0]?.name || '';
         const newPriority = currentTask.priority || priorities[0]?.name || '';
         const newProjectId = currentTask.projectId || '';
-        const newStartDate = currentTask.startDate || getTodayLocalDate();
-        const newEndDate = currentTask.endDate || getDateDaysFromNow(7);
+        const newStartDate = normalizeDateForInput(currentTask.startDate) || getTodayLocalDate();
+        const newEndDate = normalizeDateForInput(currentTask.endDate) || getDateDaysFromNow(7);
         const newCategory = currentTask.category || '';
         
         setTitle(newTitle);
@@ -212,6 +212,11 @@ const TaskModal: React.FC<TaskModalProps> = ({
       source = 'Задача';
     }
     
+    // Для задач (не идей) даты обязательны - если не указаны, используем дату создания
+    const createdAtDate = currentTask?.createdAt ? new Date(currentTask.createdAt).toISOString().split('T')[0] : getTodayLocalDate();
+    const finalStartDate = taskType === 'idea' ? undefined : (startDate || createdAtDate);
+    const finalEndDate = taskType === 'idea' ? undefined : (endDate || createdAtDate);
+    
     onSave({
       id: currentTask?.id,
       entityType, // Добавляем entityType
@@ -222,8 +227,8 @@ const TaskModal: React.FC<TaskModalProps> = ({
       assigneeId: assigneeIds[0] || null, 
       assigneeIds,
       status: taskType === 'idea' ? undefined : (currentTask?.id ? status : (taskType === 'feature' ? 'Не начато' : (statuses[0]?.name || 'Не начато'))),
-      startDate: taskType === 'idea' ? undefined : startDate,
-      endDate: taskType === 'idea' ? undefined : endDate,
+      startDate: finalStartDate,
+      endDate: finalEndDate,
       priority: taskType === 'idea' ? undefined : priority,
       contentPostId,
       dealId: currentTask?.dealId, // Сохраняем dealId из исходной задачи

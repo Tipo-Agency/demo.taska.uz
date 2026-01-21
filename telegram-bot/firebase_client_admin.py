@@ -7,6 +7,13 @@ from firebase_admin import credentials, firestore
 from typing import List, Dict, Any, Optional
 import config
 
+# Импорт Timestamp из google.cloud.firestore
+try:
+    from google.cloud.firestore import Timestamp as FirestoreTimestamp
+except ImportError:
+    # Альтернативный способ - проверка через строку имени типа
+    FirestoreTimestamp = None
+
 # Инициализация Firebase Admin SDK
 if not firebase_admin._apps:
     if config.FIREBASE_CREDENTIALS_PATH and os.path.exists(config.FIREBASE_CREDENTIALS_PATH):
@@ -29,8 +36,16 @@ def prepare_data_from_firestore(doc_data: Dict[str, Any]) -> Dict[str, Any]:
     """Подготовить данные из Firestore для использования"""
     result = {}
     for key, value in doc_data.items():
-        if isinstance(value, firestore.Timestamp):
-            result[key] = value.isoformat()
+        # Проверка Timestamp - проверяем по наличию атрибутов seconds и nanoseconds
+        # или по наличию метода isoformat и имени типа
+        if (hasattr(value, 'seconds') and hasattr(value, 'nanoseconds')) or \
+           (hasattr(value, 'isoformat') and 'Timestamp' in str(type(value))):
+            # Это Timestamp объект
+            try:
+                result[key] = value.isoformat()
+            except:
+                # Если isoformat не работает, конвертируем в строку
+                result[key] = str(value)
         elif isinstance(value, dict):
             result[key] = prepare_data_from_firestore(value)
         elif isinstance(value, list):

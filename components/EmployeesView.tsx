@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { EmployeeInfo, User, OrgPosition, Department } from '../types';
 import { UserCheck, Plus, Search, Trash2, Edit2, Calendar, FileText, X, Save, User as UserIcon, Phone, Send, Cake, Network, Building2 } from 'lucide-react';
 import { TaskSelect } from './TaskSelect';
-import { formatDate } from '../utils/dateUtils';
+import { formatDate, normalizeDateForInput } from '../utils/dateUtils';
 
 interface EmployeesViewProps {
   employees: EmployeeInfo[];
@@ -59,8 +59,8 @@ const EmployeesView: React.FC<EmployeesViewProps> = ({
       setEditingInfo(info);
       setUserId(info.userId);
       setPosition(info.position);
-      setHireDate(info.hireDate);
-      setBirthDate(info.birthDate || '');
+      setHireDate(normalizeDateForInput(info.hireDate) || '');
+      setBirthDate(normalizeDateForInput(info.birthDate) || '');
       setIsModalOpen(true);
   };
 
@@ -356,11 +356,11 @@ const EmployeesView: React.FC<EmployeesViewProps> = ({
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">Дата найма</label>
-                            <input type="date" value={hireDate} onChange={e => setHireDate(e.target.value)} className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-[#333] text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500"/>
+                            <input type="date" value={normalizeDateForInput(hireDate) || hireDate} onChange={e => setHireDate(e.target.value)} className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-[#333] text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500"/>
                         </div>
                         <div>
                             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">Дата рождения</label>
-                            <input type="date" value={birthDate} onChange={e => setBirthDate(e.target.value)} className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-[#333] text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500"/>
+                            <input type="date" value={normalizeDateForInput(birthDate) || birthDate} onChange={e => setBirthDate(e.target.value)} className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-[#333] text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500"/>
                         </div>
                     </div>
 

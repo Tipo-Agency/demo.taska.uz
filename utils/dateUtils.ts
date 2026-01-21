@@ -60,6 +60,33 @@ export function isOverdue(dateStr: string): boolean {
 }
 
 /**
+ * Нормализовать дату для input type="date" (конвертирует ISO в YYYY-MM-DD)
+ * @param dateStr - дата в любом формате (ISO, YYYY-MM-DD, и т.д.)
+ * @returns дата в формате YYYY-MM-DD или пустая строка
+ */
+export function normalizeDateForInput(dateStr: string | undefined | null): string {
+  if (!dateStr) return '';
+  
+  // Если уже в формате YYYY-MM-DD, возвращаем как есть
+  if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    return dateStr;
+  }
+  
+  // Пытаемся распарсить как ISO строку или другую дату
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) {
+    return ''; // Если не удалось распарсить, возвращаем пустую строку
+  }
+  
+  // Конвертируем в YYYY-MM-DD в локальном времени
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  
+  return `${year}-${month}-${day}`;
+}
+
+/**
  * Форматировать дату для отображения
  * @param dateStr - дата в формате YYYY-MM-DD или ISO строке
  * @param format - формат даты (по умолчанию 'DD.MM.YYYY')

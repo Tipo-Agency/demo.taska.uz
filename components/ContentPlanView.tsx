@@ -5,6 +5,7 @@ import { Calendar, Plus, X, FileText as FileTextIcon, Send, Youtube, Video, Imag
 import { DynamicIcon } from './AppIcons';
 import { TaskSelect } from './TaskSelect';
 import { api } from '../backend/api';
+import { normalizeDateForInput } from '../utils/dateUtils';
 
 interface ContentPlanViewProps {
   posts: ContentPost[];
@@ -158,7 +159,7 @@ const ContentPlanView: React.FC<ContentPlanViewProps> = ({
       const postPlatform = Array.isArray(post.platform) ? post.platform : [post.platform as any];
       setTopic(post.topic);
       setDescription(post.description || '');
-      setDate(post.date);
+      setDate(normalizeDateForInput(post.date) || '');
       setPlatform(postPlatform);
       setFormat(post.format);
       setStatus(post.status);
@@ -681,7 +682,7 @@ const ContentPlanView: React.FC<ContentPlanViewProps> = ({
                 </div>
               </div>
               <button 
-                onClick={handleSync} 
+                onClick={syncData} 
                 disabled={isSyncing}
                 className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-[#2a2a2a] disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Обновить данные"
@@ -747,7 +748,7 @@ const ContentPlanView: React.FC<ContentPlanViewProps> = ({
                                 <input 
                                     required 
                                     type="date" 
-                                    value={date} 
+                                    value={normalizeDateForInput(date) || date} 
                                     onChange={e => setDate(e.target.value)} 
                                     className="w-full bg-white dark:bg-[#333] text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-[#555] rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                                 />
