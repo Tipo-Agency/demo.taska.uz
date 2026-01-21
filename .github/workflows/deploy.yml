@@ -58,9 +58,21 @@ jobs:
               cd telegram-bot
               echo "📁 Current directory: $(pwd)"
               echo "👤 Current user: $(whoami)"
+              
+              # Проверяем версию кода (код уже обновлен через git reset выше)
+              echo "🔍 Checking bot code version..."
+              CODE_VERSION=$(grep -o "CODE_VERSION_AT_START = \"[^\"]*\"" bot.py 2>/dev/null | head -1 | cut -d'"' -f2 || echo "NOT FOUND")
+              if [ "$CODE_VERSION" = "NOT FOUND" ]; then
+                # Пробуем другой формат
+                CODE_VERSION=$(grep -o "CODE_VERSION.*=.*\"[^\"]*\"" bot.py 2>/dev/null | head -1 | cut -d'"' -f2 || echo "NOT FOUND")
+              fi
+              echo "📋 Bot code version in file: $CODE_VERSION"
+              
               echo "🔧 Fixing ownership of bot files to deploy user..."
               # Исправляем права на файлы бота - они должны принадлежать пользователю деплоя
               sudo chown -R $USER:$USER "$(pwd)" || true
+              sudo chmod -R u+rwX "$(pwd)" || true
+              
               # Убеждаемся, что .env файл доступен
               if [ -f ".env" ]; then
                 sudo chown $USER:$USER .env || true
@@ -71,11 +83,33 @@ jobs:
                 sudo chown $USER:$USER firebase-credentials.json || true
                 chmod 600 firebase-credentials.json || true
               fi
-              echo "📝 Bot files updated via git, now installing dependencies and restarting service..."
+              
+              # Проверяем, что файл bot.py существует и читается
+              if [ -f "bot.py" ]; then
+                echo "✅ bot.py file exists"
+                echo "📊 File size: $(wc -l < bot.py) lines"
+              else
+                echo "❌ bot.py file NOT found!"
+              fi
+              
+              echo "📝 Installing dependencies and restarting service..."
               chmod +x deploy.sh
               # Запускаем с sudo для systemd операций, но передаем пользователя деплоя
-              # Код уже обновлен через git reset --hard origin/main выше
               DEPLOY_USER=$USER sudo -E ./deploy.sh || echo "⚠️ Telegram bot deployment failed, but continuing..."
+              
+              # Проверяем, что бот запустился
+              sleep 3
+              if systemctl is-active --quiet telegram-bot; then
+                echo "✅ Telegram bot is running"
+                # Проверяем логи на наличие версии
+                echo "📋 Checking bot logs for version..."
+                sudo journalctl -u telegram-bot -n 5 --no-pager | grep -i "code version" || echo "⚠️ Version not found in logs (may need to check manually)"
+              else
+                echo "❌ Telegram bot is NOT running!"
+                echo "📋 Recent logs:"
+                sudo journalctl -u telegram-bot -n 20 --no-pager || true
+              fi
+              
               cd ..
             else
               echo "⚠️ Telegram bot directory not found, skipping..."

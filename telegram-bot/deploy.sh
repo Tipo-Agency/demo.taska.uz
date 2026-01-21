@@ -35,6 +35,12 @@ source "$VENV_DIR/bin/activate"
 echo "⬆️ Upgrading pip..."
 pip install --upgrade pip
 
+# Очищаем кэш Python (на случай если старые .pyc файлы мешают)
+echo "🧹 Cleaning Python cache..."
+find "$BOT_DIR" -type d -name "__pycache__" -exec rm -r {} + 2>/dev/null || true
+find "$BOT_DIR" -type f -name "*.pyc" -delete 2>/dev/null || true
+find "$BOT_DIR" -type f -name "*.pyo" -delete 2>/dev/null || true
+
 # Устанавливаем зависимости
 echo "📥 Installing dependencies..."
 pip install -r "$BOT_DIR/requirements.txt"
@@ -54,7 +60,22 @@ fi
 if systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
     echo "🛑 Stopping existing service..."
     sudo systemctl stop "$SERVICE_NAME" || true
-    sleep 2  # Даем время сервису остановиться
+    sleep 3  # Даем время сервису остановиться
+fi
+
+# Очищаем кэш Python ПЕРЕД обновлением (на случай если старые .pyc файлы мешают)
+echo "🧹 Cleaning Python cache before deployment..."
+find "$BOT_DIR" -type d -name "__pycache__" -exec rm -r {} + 2>/dev/null || true
+find "$BOT_DIR" -type f -name "*.pyc" -delete 2>/dev/null || true
+find "$BOT_DIR" -type f -name "*.pyo" -delete 2>/dev/null || true
+
+# Проверяем версию кода в файле
+echo "🔍 Checking bot code version in bot.py..."
+if [ -f "$BOT_DIR/bot.py" ]; then
+    CODE_VERSION_IN_FILE=$(grep -o "CODE_VERSION_AT_START = \"[^\"]*\"" "$BOT_DIR/bot.py" 2>/dev/null | head -1 | cut -d'"' -f2 || echo "NOT FOUND")
+    echo "📋 Code version in bot.py: $CODE_VERSION_IN_FILE"
+else
+    echo "❌ bot.py file not found!"
 fi
 
 # Определяем пользователя для сервиса
@@ -134,17 +155,20 @@ echo "🚀 Starting service..."
 sudo systemctl start "$SERVICE_NAME"
 
 # Проверяем статус
-sleep 3
+sleep 5  # Увеличиваем задержку, чтобы бот успел запуститься
 if systemctl is-active --quiet "$SERVICE_NAME"; then
     echo "✅ Telegram bot deployed and running successfully!"
     echo "📊 Service status:"
     sudo systemctl status "$SERVICE_NAME" --no-pager -l | head -15 || true
     echo ""
-    echo "📝 Recent logs (last 10 lines):"
-    sudo journalctl -u "$SERVICE_NAME" -n 10 --no-pager || true
+    echo "📝 Recent logs (last 15 lines):"
+    sudo journalctl -u "$SERVICE_NAME" -n 15 --no-pager || true
+    echo ""
+    echo "🔍 Checking for code version in logs:"
+    sudo journalctl -u "$SERVICE_NAME" -n 30 --no-pager | grep -i "code version" || echo "⚠️ Code version not found in logs"
 else
     echo "⚠️ Service may not be running. Checking logs:"
-    sudo journalctl -u "$SERVICE_NAME" -n 20 --no-pager || true
+    sudo journalctl -u "$SERVICE_NAME" -n 30 --no-pager || true
     echo ""
     echo "💡 You may need to check the service manually:"
     echo "   sudo systemctl status $SERVICE_NAME"
