@@ -49,8 +49,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Логируем версию кода СРАЗУ при импорте модуля
-CODE_VERSION_AT_START = "2026-01-21-v6"
-logger.info(f"[BOT] Module loaded - Code version: {CODE_VERSION_AT_START}")
+CODE_VERSION_AT_START = "2026-01-21-v7"
+print(f"[BOT] ===== MODULE LOADED ===== Code version: {CODE_VERSION_AT_START} =====")
+logger.info(f"[BOT] ===== MODULE LOADED ===== Code version: {CODE_VERSION_AT_START} =====")
 
 # Включаем детальное логирование для httpx (чтобы видеть ответы от Telegram API)
 logging.getLogger("httpx").setLevel(logging.DEBUG)
@@ -583,12 +584,13 @@ def main():
     """Главная функция запуска бота"""
     try:
         # Версия кода для проверки обновлений
-        CODE_VERSION = "2026-01-21-v6"
+        CODE_VERSION = "2026-01-21-v7"
         
         logger.info("=" * 60)
         logger.info(f"[BOT] ===== STARTING BOT =====")
         logger.info(f"[BOT] Code version: {CODE_VERSION}")
         logger.info(f"[BOT] This version includes detailed update logging")
+        print(f"[BOT] ===== STARTING BOT ===== Code version: {CODE_VERSION} =====")
         logger.info(f"[BOT] Initializing bot with token: {config.TELEGRAM_BOT_TOKEN[:10]}...")
         
         # Создаем приложение
@@ -723,6 +725,7 @@ def main():
         raise
 
 if __name__ == '__main__':
+    print(f"[BOT] ===== SCRIPT STARTED ===== Code version: {CODE_VERSION_AT_START} =====")
     logger.info(f"[BOT] ===== SCRIPT STARTED =====")
     logger.info(f"[BOT] Code version at start: {CODE_VERSION_AT_START}")
     try:
