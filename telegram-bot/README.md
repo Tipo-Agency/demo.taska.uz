@@ -16,11 +16,10 @@ cp .env.example .env
 
 3. Заполните переменные окружения в `.env`:
 - `TELEGRAM_BOT_TOKEN` - токен Telegram бота
-- `FIREBASE_PROJECT_ID` - ID проекта Firebase
-- `FIREBASE_CREDENTIALS_PATH` - путь к файлу с credentials Firebase (опционально)
+- `FIREBASE_PROJECT_ID` - ID проекта Firebase (по умолчанию `tipa-task-manager`)
 - `DEFAULT_TIMEZONE` - часовой пояс (по умолчанию `Asia/Tashkent`)
 
-4. Если используете Firebase Admin SDK, скачайте credentials файл из Firebase Console и укажите путь в `.env`.
+**Примечание:** Бот использует Firebase REST API, поэтому не требуется credentials файл. Убедитесь, что правила безопасности Firestore разрешают чтение/запись для нужных коллекций.
 
 ## Запуск
 
