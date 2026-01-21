@@ -48,6 +48,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Логируем версию кода СРАЗУ при импорте модуля
+CODE_VERSION_AT_START = "2026-01-21-v6"
+logger.info(f"[BOT] Module loaded - Code version: {CODE_VERSION_AT_START}")
+
 # Включаем детальное логирование для httpx (чтобы видеть ответы от Telegram API)
 logging.getLogger("httpx").setLevel(logging.DEBUG)
 
@@ -577,16 +581,22 @@ async def periodic_check(context: ContextTypes.DEFAULT_TYPE):
 
 def main():
     """Главная функция запуска бота"""
-    # Версия кода для проверки обновлений
-    CODE_VERSION = "2026-01-21-v2"
-    
-    logger.info("=" * 60)
-    logger.info(f"[BOT] Starting bot - Code version: {CODE_VERSION}")
-    logger.info(f"[BOT] Initializing bot with token: {config.TELEGRAM_BOT_TOKEN[:10]}...")
-    
-    # Создаем приложение
-    application = Application.builder().token(config.TELEGRAM_BOT_TOKEN).build()
-    logger.info("[BOT] Application created successfully")
+    try:
+        # Версия кода для проверки обновлений
+        CODE_VERSION = "2026-01-21-v6"
+        
+        logger.info("=" * 60)
+        logger.info(f"[BOT] ===== STARTING BOT =====")
+        logger.info(f"[BOT] Code version: {CODE_VERSION}")
+        logger.info(f"[BOT] This version includes detailed update logging")
+        logger.info(f"[BOT] Initializing bot with token: {config.TELEGRAM_BOT_TOKEN[:10]}...")
+        
+        # Создаем приложение
+        application = Application.builder().token(config.TELEGRAM_BOT_TOKEN).build()
+        logger.info("[BOT] Application created successfully")
+    except Exception as e:
+        logger.error(f"[BOT] FATAL ERROR in main() initialization: {e}", exc_info=True)
+        raise
     
     # Обработчик ошибок
     async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -677,16 +687,32 @@ def main():
     # Запускаем бота
     logger.info("=" * 60)
     logger.info("Bot started")
-    logger.info(f"[BOT] Code version: 2026-01-21-v3 (with detailed logging)")
+    logger.info(f"[BOT] Code version: {CODE_VERSION} (with detailed logging)")
     logger.info(f"[BOT] Starting polling with token: {config.TELEGRAM_BOT_TOKEN[:10]}...")
     logger.info(f"[BOT] Polling mode: allowed_updates={Update.ALL_TYPES}, drop_pending_updates=False")
     logger.info(f"[BOT] All handlers registered, starting polling...")
     logger.info("=" * 60)
     
+    # Добавляем кастомный обработчик для логирования ответов от getUpdates
+    async def post_init(application: Application) -> None:
+        """Вызывается после инициализации приложения"""
+        logger.info("[BOT] Application initialized, polling will start")
+    
+    async def post_shutdown(application: Application) -> None:
+        """Вызывается при остановке приложения"""
+        logger.info("[BOT] Application shutting down")
+    
+    application.post_init = post_init
+    application.post_shutdown = post_shutdown
+    
     try:
+        logger.info("[BOT] Starting polling...")
+        logger.info("[BOT] If you send /start to the bot, you should see [UPDATE] messages in logs")
         application.run_polling(
             allowed_updates=Update.ALL_TYPES,
-            drop_pending_updates=False  # Обрабатываем все обновления
+            drop_pending_updates=False,  # Обрабатываем все обновления
+            poll_interval=1.0,  # Проверяем обновления каждую секунду
+            timeout=10  # Таймаут для запросов
         )
     except KeyboardInterrupt:
         logger.info("Bot stopped by user")
@@ -695,4 +721,10 @@ def main():
         raise
 
 if __name__ == '__main__':
-    main()
+    logger.info(f"[BOT] ===== SCRIPT STARTED =====")
+    logger.info(f"[BOT] Code version at start: {CODE_VERSION_AT_START}")
+    try:
+        main()
+    except Exception as e:
+        logger.error(f"[BOT] FATAL ERROR in main(): {e}", exc_info=True)
+        raise
