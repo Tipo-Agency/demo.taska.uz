@@ -1,7 +1,15 @@
 #!/bin/bash
 # Скрипт для проверки подключения бота к Telegram API
 
-BOT_TOKEN="8348357222:AAHzzrWFOE7n3MiGYKgugqXbUSehTW1-D1c"
+# Читаем токен из .env файла или переменной окружения
+if [ -f ".env" ]; then
+    BOT_TOKEN=$(grep "TELEGRAM_BOT_TOKEN" .env | cut -d '=' -f2 | tr -d ' ' | tr -d '"')
+elif [ -n "$TELEGRAM_BOT_TOKEN" ]; then
+    BOT_TOKEN="$TELEGRAM_BOT_TOKEN"
+else
+    echo "❌ Error: TELEGRAM_BOT_TOKEN not found in .env file or environment variable"
+    exit 1
+fi
 
 echo "🔍 Testing bot connection..."
 echo ""

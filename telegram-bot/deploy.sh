@@ -58,10 +58,20 @@ if systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
 fi
 
 # Определяем пользователя для сервиса
+# Если скрипт запущен через sudo, используем SUDO_USER
+# Иначе используем текущего пользователя
 SERVICE_USER=${SUDO_USER:-$USER}
 if [ -z "$SERVICE_USER" ] || [ "$SERVICE_USER" = "root" ]; then
-    SERVICE_USER=$(whoami)
+    # Если все еще root, пытаемся определить пользователя из переменной окружения деплоя
+    if [ -n "$DEPLOY_USER" ]; then
+        SERVICE_USER="$DEPLOY_USER"
+    else
+        # Пытаемся определить владельца директории проекта
+        SERVICE_USER=$(stat -c '%U' "$BOT_DIR/.." 2>/dev/null || echo "www-data")
+    fi
 fi
+
+echo "📋 Service will run as user: $SERVICE_USER"
 
 # Создаем systemd service файл
 echo "📝 Creating/updating systemd service..."

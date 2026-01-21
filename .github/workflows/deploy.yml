@@ -21,8 +21,12 @@ jobs:
             cd ${{ secrets.SERVER_PATH }}
             # Fix Git ownership issue
             git config --global --add safe.directory ${{ secrets.SERVER_PATH }} || true
+            # Убеждаемся, что пользователь деплоя имеет права на репозиторий
+            sudo chown -R $USER:$USER ${{ secrets.SERVER_PATH }}/.git || true
             git fetch origin
             git reset --hard origin/main
+            # Убеждаемся, что все файлы принадлежат пользователю деплоя
+            sudo chown -R $USER:$USER ${{ secrets.SERVER_PATH }} || true
             
             # Deploy frontend
             echo "🚀 Deploying frontend..."
