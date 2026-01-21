@@ -54,7 +54,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
   const [assigneeId, setAssigneeId] = useState<string>('');
   const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
   const [startDate, setStartDate] = useState(getTodayLocalDate());
-  const [endDate, setEndDate] = useState(getDateDaysFromNow(7));
+  const [endDate, setEndDate] = useState(getTodayLocalDate());
   const [status, setStatus] = useState<string>(statuses[0]?.name || '');
   const [contentPostId, setContentPostId] = useState<string | undefined>(undefined);
   const [category, setCategory] = useState<string>('');
@@ -103,7 +103,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
         const newAssigneeId = currentTask.assigneeId || '';
         const newAssigneeIds = currentTask.assigneeIds || (currentTask.assigneeId ? [currentTask.assigneeId] : []);
         const newStartDate = normalizeDateForInput(currentTask.startDate) || getTodayLocalDate();
-        const newEndDate = normalizeDateForInput(currentTask.endDate) || getDateDaysFromNow(7);
+        const newEndDate = normalizeDateForInput(currentTask.endDate) || getTodayLocalDate();
         const newStatus = currentTask.status || statuses[0]?.name || '';
         const newCategory = currentTask.category || '';
         
@@ -143,7 +143,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
         const newPriority = currentTask.priority || priorities[0]?.name || '';
         const newProjectId = currentTask.projectId || '';
         const newStartDate = normalizeDateForInput(currentTask.startDate) || getTodayLocalDate();
-        const newEndDate = normalizeDateForInput(currentTask.endDate) || getDateDaysFromNow(7);
+        const newEndDate = normalizeDateForInput(currentTask.endDate) || getTodayLocalDate();
         const newCategory = currentTask.category || '';
         
         setTitle(newTitle);
@@ -191,7 +191,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
           assigneeId: currentUser.id,
           assigneeIds: [currentUser.id],
           startDate: getTodayLocalDate(),
-          endDate: getDateDaysFromNow(7),
+          endDate: getTodayLocalDate(),
           status: statuses[0]?.name || '',
           category: ''
         };

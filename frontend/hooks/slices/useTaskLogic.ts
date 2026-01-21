@@ -170,9 +170,9 @@ export const useTaskLogic = (showNotification: (msg: string) => void, currentUse
             assigneeId: taskData.assigneeId || null,
             assigneeIds: taskData.assigneeIds || (taskData.assigneeId ? [taskData.assigneeId] : []),
             projectId: taskData.projectId || null,
-            // Для задач даты обязательны - используем переданные или дату создания (для endDate - +7 дней)
+            // Для задач даты обязательны - используем переданные или дату создания (обе даты = дата создания)
             startDate: isTask ? (taskData.startDate || createdAtDate) : taskData.startDate,
-            endDate: isTask ? (taskData.endDate || getDateDaysFromNow(7)) : taskData.endDate,
+            endDate: isTask ? (taskData.endDate || createdAtDate) : taskData.endDate,
             isArchived: false,
             description: taskData.description,
             comments: [],
