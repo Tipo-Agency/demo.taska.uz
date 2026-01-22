@@ -1,8 +1,13 @@
 """
 Главный файл Telegram бота
 """
+# ВАЖНО: Этот файл должен обновляться при каждом деплое!
+# Если версия не меняется в логах - проверьте кэш Python и systemd service
+
 import asyncio
 import logging
+import sys
+import os
 from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -50,8 +55,20 @@ logger = logging.getLogger(__name__)
 
 # Логируем версию кода СРАЗУ при импорте модуля
 CODE_VERSION_AT_START = "2026-01-21-v7"
-print(f"[BOT] ===== MODULE LOADED ===== Code version: {CODE_VERSION_AT_START} =====")
+
+# Принудительно выводим версию в stdout и stderr для диагностики
+print(f"[BOT] ===== MODULE LOADED ===== Code version: {CODE_VERSION_AT_START} =====", file=sys.stdout, flush=True)
+print(f"[BOT] ===== MODULE LOADED ===== Code version: {CODE_VERSION_AT_START} =====", file=sys.stderr, flush=True)
+
+# Также логируем путь к файлу для проверки
+BOT_FILE_PATH = os.path.abspath(__file__)
+print(f"[BOT] Bot file path: {BOT_FILE_PATH}", file=sys.stdout, flush=True)
+print(f"[BOT] Bot file exists: {os.path.exists(BOT_FILE_PATH)}", file=sys.stdout, flush=True)
+if os.path.exists(BOT_FILE_PATH):
+    print(f"[BOT] Bot file modified: {os.path.getmtime(BOT_FILE_PATH)}", file=sys.stdout, flush=True)
+
 logger.info(f"[BOT] ===== MODULE LOADED ===== Code version: {CODE_VERSION_AT_START} =====")
+logger.info(f"[BOT] Bot file path: {BOT_FILE_PATH}")
 
 # Включаем детальное логирование для httpx (чтобы видеть ответы от Telegram API)
 logging.getLogger("httpx").setLevel(logging.DEBUG)

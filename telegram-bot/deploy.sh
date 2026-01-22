@@ -60,14 +60,31 @@ fi
 if systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
     echo "🛑 Stopping existing service..."
     sudo systemctl stop "$SERVICE_NAME" || true
-    sleep 3  # Даем время сервису остановиться
+    sleep 5  # Даем время сервису полностью остановиться
+    # Убиваем все процессы Python, связанные с ботом (на всякий случай)
+    pkill -f "python.*bot.py" || true
+    sleep 2
 fi
 
-# Очищаем кэш Python ПЕРЕД обновлением (на случай если старые .pyc файлы мешают)
-echo "🧹 Cleaning Python cache before deployment..."
-find "$BOT_DIR" -type d -name "__pycache__" -exec rm -r {} + 2>/dev/null || true
+# АГРЕССИВНАЯ очистка кэша Python (включая venv)
+echo "🧹 Cleaning Python cache (aggressive mode)..."
+# Очищаем кэш в директории бота
+find "$BOT_DIR" -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 find "$BOT_DIR" -type f -name "*.pyc" -delete 2>/dev/null || true
 find "$BOT_DIR" -type f -name "*.pyo" -delete 2>/dev/null || true
+find "$BOT_DIR" -type f -name "*.pyc" -delete 2>/dev/null || true
+
+# Очищаем кэш в виртуальном окружении (если оно существует)
+if [ -d "$VENV_DIR" ]; then
+    echo "🧹 Cleaning venv cache..."
+    find "$VENV_DIR" -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+    find "$VENV_DIR" -type f -name "*.pyc" -delete 2>/dev/null || true
+    find "$VENV_DIR" -type f -name "*.pyo" -delete 2>/dev/null || true
+fi
+
+# Очищаем кэш pip
+echo "🧹 Cleaning pip cache..."
+pip cache purge 2>/dev/null || true
 
 # Проверяем версию кода в файле
 echo "🔍 Checking bot code version in bot.py..."
@@ -165,7 +182,19 @@ if systemctl is-active --quiet "$SERVICE_NAME"; then
     sudo journalctl -u "$SERVICE_NAME" -n 15 --no-pager || true
     echo ""
     echo "🔍 Checking for code version in logs:"
-    sudo journalctl -u "$SERVICE_NAME" -n 30 --no-pager | grep -i "code version" || echo "⚠️ Code version not found in logs"
+    sudo journalctl -u "$SERVICE_NAME" -n 50 --no-pager | grep -i "code version" || echo "⚠️ Code version not found in logs"
+    echo ""
+    echo "🔍 Verifying bot.py file path and version:"
+    if [ -f "$BOT_DIR/bot.py" ]; then
+        ACTUAL_VERSION=$(grep -o "CODE_VERSION_AT_START = \"[^\"]*\"" "$BOT_DIR/bot.py" 2>/dev/null | head -1 | cut -d'"' -f2 || echo "NOT FOUND")
+        echo "   📄 File: $BOT_DIR/bot.py"
+        echo "   📋 Version in file: $ACTUAL_VERSION"
+        echo "   📊 File size: $(wc -l < "$BOT_DIR/bot.py") lines"
+        echo "   🕐 Last modified: $(stat -c '%y' "$BOT_DIR/bot.py" 2>/dev/null || stat -f '%Sm' "$BOT_DIR/bot.py" 2>/dev/null || echo "unknown")"
+        echo "   🔍 Systemd ExecStart path: $VENV_DIR/bin/python $BOT_DIR/bot.py"
+    else
+        echo "   ❌ bot.py file not found at $BOT_DIR/bot.py"
+    fi
 else
     echo "⚠️ Service may not be running. Checking logs:"
     sudo journalctl -u "$SERVICE_NAME" -n 30 --no-pager || true
