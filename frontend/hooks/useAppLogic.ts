@@ -255,8 +255,20 @@ export const useAppLogic = () => {
   // Данные загружаются по требованию и обновляются после каждого сохранения
 
   // Telegram polling для CRM модуля
+  // ВАЖНО: Отключено, чтобы избежать конфликта с ботом (getUpdates может использоваться только одним клиентом)
+  // Если нужен polling для клиентского бота - используйте отдельный токен или webhook
   useEffect(() => {
     if (!loadedModulesRef.current.has('crm')) return; // Работает только если CRM модуль загружен
+    
+    // Проверяем, что используется другой токен (клиентский бот), а не employee бот
+    const clientBotToken = storageService.getClientBotToken();
+    const employeeBotToken = storageService.getEmployeeBotToken();
+    
+    // Если токены совпадают или клиентский токен не установлен - отключаем polling
+    if (!clientBotToken || clientBotToken === employeeBotToken) {
+      console.warn('[TELEGRAM] Polling отключен: используется тот же токен, что и для employee бота');
+      return;
+    }
     
     const tgPollInterval = setInterval(async () => {
         // Only run polling if enabled in settings

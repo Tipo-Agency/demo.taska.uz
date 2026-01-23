@@ -135,9 +135,15 @@ export const sendClientMessage = async (chatId: string, text: string) => {
 export const pollTelegramUpdates = async (): Promise<{ newDeals: Deal[], newMessages: { dealId: string, text: string, username: string }[] }> => {
     const result = { newDeals: [] as Deal[], newMessages: [] as any[] };
     
-    // Use Client Bot Token
+    // Use Client Bot Token (ВАЖНО: должен отличаться от Employee Bot Token!)
     const botToken = storageService.getClientBotToken();
-    if (!botToken) return result;
+    const employeeBotToken = storageService.getEmployeeBotToken();
+    
+    // Проверка: если токены совпадают - не делаем polling (вызовет конфликт 409)
+    if (!botToken || botToken === employeeBotToken) {
+        console.warn('[TELEGRAM POLLING] Отключено: клиентский токен не установлен или совпадает с employee токеном');
+        return result;
+    }
 
     try {
         const offset = storageService.getLastTelegramUpdateId() + 1;
