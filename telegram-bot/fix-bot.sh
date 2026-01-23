@@ -46,6 +46,21 @@ check_status() {
         echo "$PROCESSES" | awk '{print "   PID:", $2, "User:", $1}'
     fi
     
+    # Дополнительная проверка: все процессы Python
+    echo ""
+    echo "   🔍 Все процессы Python (для диагностики):"
+    ALL_PYTHON=$(ps aux | grep python | grep -v grep | grep -v "grep python" || echo "")
+    if [ -n "$ALL_PYTHON" ]; then
+        echo "$ALL_PYTHON" | head -10 | awk '{print "   PID:", $2, "CMD:", substr($0, index($0,$11))}'
+    else
+        echo "   (нет процессов Python)"
+    fi
+    
+    # Проверка systemd сервисов
+    echo ""
+    echo "   🔍 Systemd сервисы с 'bot' в имени:"
+    systemctl list-units --type=service | grep -i bot || echo "   (нет других сервисов с 'bot')"
+    
     # 3. Версия кода
     echo ""
     echo "3️⃣ Версия кода:"
@@ -122,6 +137,18 @@ fix_issues() {
         echo "   ✅ Процессы не найдены"
     fi
     
+    # Дополнительно: убиваем все процессы Python, которые могут быть ботом
+    echo "   🔍 Проверяем все процессы Python на наличие bot.py..."
+    ALL_PYTHON_PIDS=$(ps aux | grep python | grep -v grep | awk '{print $2}' || echo "")
+    for PID in $ALL_PYTHON_PIDS; do
+        CMD=$(ps -p "$PID" -o cmd= 2>/dev/null || echo "")
+        if echo "$CMD" | grep -q "bot.py"; then
+            echo "   Найден процесс с bot.py: PID $PID, убиваем..."
+            sudo kill -9 "$PID" 2>/dev/null || true
+        fi
+    done
+    sleep 2
+    
     # Финальная проверка
     REMAINING=$(pgrep -f "python.*bot.py" 2>/dev/null || echo "")
     if [ -n "$REMAINING" ]; then
@@ -190,16 +217,40 @@ fix_issues() {
     # 7. Проверка подключения к Telegram
     echo ""
     echo "7️⃣ Проверка подключения к Telegram API..."
-    sleep 2
+    sleep 3
     GETUPDATES_RESPONSE=$(curl -s "https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?timeout=1" 2>/dev/null || echo "")
     if echo "$GETUPDATES_RESPONSE" | grep -q '"ok":true'; then
         echo "   ✅ getUpdates: OK (нет ошибки 409)"
     elif echo "$GETUPDATES_RESPONSE" | grep -q "409"; then
         echo "   ❌ getUpdates: 409 CONFLICT ERROR!"
         echo "   Все еще есть несколько экземпляров бота"
-        echo "   Попробуйте еще раз: sudo ./fix-bot.sh"
+        echo ""
+        echo "   🔍 Возможные причины:"
+        echo "   1. Другой бот с тем же токеном запущен на другом сервере"
+        echo "   2. Бот запущен локально на вашем компьютере"
+        echo "   3. Есть скрытый процесс, который не виден через ps"
+        echo ""
+        echo "   💡 Решение:"
+        echo "   1. Проверьте, нет ли других серверов/компьютеров с этим ботом"
+        echo "   2. Проверьте cron jobs: crontab -l"
+        echo "   3. Проверьте все systemd сервисы: systemctl list-units --type=service | grep bot"
+        echo "   4. Попробуйте еще раз через минуту: sudo ./fix-bot.sh"
     else
         echo "   ⚠️ getUpdates: Неожиданный ответ"
+    fi
+    
+    # 8. Проверка логов на наличие ошибок Conflict
+    echo ""
+    echo "8️⃣ Проверка логов на ошибки Conflict..."
+    sleep 2
+    CONFLICT_IN_LOGS=$(sudo journalctl -u "$SERVICE_NAME" -n 50 --no-pager 2>/dev/null | grep -i "conflict" | tail -3 || echo "")
+    if [ -n "$CONFLICT_IN_LOGS" ]; then
+        echo "   ⚠️ Найдены ошибки Conflict в логах:"
+        echo "$CONFLICT_IN_LOGS" | sed 's/^/   /'
+        echo ""
+        echo "   💡 Это означает, что где-то еще есть экземпляр бота"
+    else
+        echo "   ✅ Ошибок Conflict в последних логах нет"
     fi
     
     echo ""
