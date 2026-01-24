@@ -108,7 +108,7 @@ jobs:
               else
                 echo "   ⚠️ telegram-bot.service file not found in bot directory"
                 echo "   Creating systemd service manually..."
-                sudo tee /etc/systemd/system/telegram-bot.service > /dev/null <<EOF
+                cat << 'SERVICEEOF' | sudo tee /etc/systemd/system/telegram-bot.service > /dev/null
 [Unit]
 Description=Telegram Bot for Task Management System
 After=network.target
@@ -127,7 +127,7 @@ StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
-EOF
+SERVICEEOF
                 sudo chmod 644 /etc/systemd/system/telegram-bot.service
                 sudo systemctl daemon-reload
                 echo "   ✅ Systemd service created and reloaded"
