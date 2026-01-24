@@ -1538,11 +1538,13 @@ def main():
     # MessageHandler с filters.ALL ловит все сообщения
     application.add_handler(MessageHandler(filters.ALL, log_update), group=-1)
     
-    # Обработчик текстовых сообщений для создания задач и сделок
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text_message))
     # Также добавляем обработчик для callback_query
     application.add_handler(CallbackQueryHandler(log_update), group=-1)
     logger.info("[BOT] Logging handlers registered in group -1 (will see ALL updates)")
+    
+    # Обработчик текстовых сообщений для создания задач и сделок
+    # Регистрируем ПОСЛЕ ConversationHandler'ов, чтобы они имели приоритет
+    # application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text_message))
     
     # ConversationHandler для создания задачи из сообщения в группе
     # Фильтр для групповых чатов - проверка выполняется внутри handle_bot_mention
@@ -1585,6 +1587,10 @@ def main():
     
     # ConversationHandler для создания задачи из сообщения (регистрируем последним)
     application.add_handler(task_from_message_handler)
+    
+    # Обработчик текстовых сообщений для создания задач и сделок (регистрируем ПОСЛЕ ConversationHandler'ов)
+    # Это позволяет ConversationHandler'ам обрабатывать сообщения в своих состояниях
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text_message))
     
     # Регистрируем обработчик ошибок
     application.add_error_handler(error_handler)
