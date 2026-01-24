@@ -83,6 +83,12 @@ class TaskScheduler:
             if not notification_prefs:
                 return
             
+            # Проверяем, включена ли ежедневная сводка
+            group_daily_summary = notification_prefs.get('groupDailySummary', {'telegramGroup': True})
+            if not group_daily_summary.get('telegramGroup', True):
+                print("Group daily summary is disabled in settings")
+                return
+            
             telegram_chat_id = notification_prefs.get('telegramGroupChatId')
             if not telegram_chat_id:
                 print("No telegramGroupChatId in notification preferences")

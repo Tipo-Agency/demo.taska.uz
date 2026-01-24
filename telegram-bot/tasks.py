@@ -39,17 +39,33 @@ def get_today_tasks(user_id: str) -> List[Dict[str, Any]]:
     """Получить задачи на сегодня"""
     try:
         today = get_today_date()
+        print(f"[TASKS] Getting today tasks for user_id: {user_id}, today: {today}")
+        
         user_tasks = get_user_tasks(user_id)
+        print(f"[TASKS] Found {len(user_tasks)} user tasks total")
         
         today_tasks = []
         for task in user_tasks:
             end_date = task.get('endDate', '')
-            if end_date == today:
+            # Нормализуем дату - убираем время если есть
+            if end_date:
+                # Если дата содержит время, берем только дату
+                if 'T' in end_date:
+                    end_date = end_date.split('T')[0]
+                elif ' ' in end_date:
+                    end_date = end_date.split(' ')[0]
+            
+            print(f"[TASKS] Task {task.get('id')}: endDate={end_date}, today={today}, match={end_date == today}")
+            
+            # Сравниваем даты (может быть в формате YYYY-MM-DD или другой)
+            if end_date and (end_date == today or end_date.startswith(today)):
                 # Исключаем выполненные задачи
                 status = task.get('status', '').lower()
                 if status not in ['выполнено', 'done', 'завершено', 'completed']:
                     today_tasks.append(task)
+                    print(f"[TASKS] Added task {task.get('id')} to today tasks")
         
+        print(f"[TASKS] Returning {len(today_tasks)} today tasks")
         return today_tasks
     except Exception as e:
         print(f"Error getting today tasks: {e}")
@@ -60,17 +76,33 @@ def get_today_tasks(user_id: str) -> List[Dict[str, Any]]:
 def get_overdue_tasks(user_id: str) -> List[Dict[str, Any]]:
     """Получить просроченные задачи"""
     try:
+        print(f"[TASKS] Getting overdue tasks for user_id: {user_id}")
         user_tasks = get_user_tasks(user_id)
+        print(f"[TASKS] Found {len(user_tasks)} user tasks total")
         
         overdue_tasks = []
         for task in user_tasks:
             end_date = task.get('endDate', '')
-            if end_date and is_overdue(end_date):
-                # Исключаем выполненные задачи
-                status = task.get('status', '').lower()
-                if status not in ['выполнено', 'done', 'завершено', 'completed']:
-                    overdue_tasks.append(task)
+            if end_date:
+                # Нормализуем дату - убираем время если есть
+                if 'T' in end_date:
+                    end_date_normalized = end_date.split('T')[0]
+                elif ' ' in end_date:
+                    end_date_normalized = end_date.split(' ')[0]
+                else:
+                    end_date_normalized = end_date
+                
+                is_overdue_task = is_overdue(end_date_normalized)
+                print(f"[TASKS] Task {task.get('id')}: endDate={end_date}, is_overdue={is_overdue_task}")
+                
+                if is_overdue_task:
+                    # Исключаем выполненные задачи
+                    status = task.get('status', '').lower()
+                    if status not in ['выполнено', 'done', 'завершено', 'completed']:
+                        overdue_tasks.append(task)
+                        print(f"[TASKS] Added task {task.get('id')} to overdue tasks")
         
+        print(f"[TASKS] Returning {len(overdue_tasks)} overdue tasks")
         return overdue_tasks
     except Exception as e:
         print(f"Error getting overdue tasks: {e}")

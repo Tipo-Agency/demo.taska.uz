@@ -17,11 +17,30 @@ def is_overdue(end_date: str, timezone: str = 'Asia/Tashkent') -> bool:
         return False
     
     try:
+        # Нормализуем дату - убираем время если есть
+        date_str = end_date
+        if 'T' in date_str:
+            date_str = date_str.split('T')[0]
+        elif ' ' in date_str:
+            date_str = date_str.split(' ')[0]
+        
         tz = pytz.timezone(timezone)
         today = datetime.now(tz).date()
-        task_date = datetime.fromisoformat(end_date.replace('Z', '+00:00')).date()
+        
+        # Пробуем разные форматы даты
+        try:
+            task_date = datetime.fromisoformat(date_str).date()
+        except:
+            # Если не ISO формат, пробуем парсить как YYYY-MM-DD
+            try:
+                task_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            except:
+                # Если и это не работает, пробуем с временной зоной
+                task_date = datetime.fromisoformat(date_str.replace('Z', '+00:00')).date()
+        
         return task_date < today
-    except:
+    except Exception as e:
+        print(f"Error checking overdue for date {end_date}: {e}")
         return False
 
 def get_week_range(timezone: str = 'Asia/Tashkent') -> tuple:

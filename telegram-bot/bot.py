@@ -1067,9 +1067,7 @@ async def settings_notifications(update: Update, context: ContextTypes.DEFAULT_T
             'id': 'default',
             'newTask': {'telegramPersonal': True, 'telegramGroup': False},
             'statusChange': {'telegramPersonal': True, 'telegramGroup': False},
-            'taskAssigned': {'telegramPersonal': True, 'telegramGroup': False},
             'taskComment': {'telegramPersonal': True, 'telegramGroup': False},
-            'taskDeadline': {'telegramPersonal': True, 'telegramGroup': False},
             'docCreated': {'telegramPersonal': True, 'telegramGroup': False},
             'docUpdated': {'telegramPersonal': True, 'telegramGroup': False},
             'docShared': {'telegramPersonal': True, 'telegramGroup': False},
@@ -1083,6 +1081,9 @@ async def settings_notifications(update: Update, context: ContextTypes.DEFAULT_T
             'purchaseRequestCreated': {'telegramPersonal': True, 'telegramGroup': False},
             'purchaseRequestStatusChanged': {'telegramPersonal': True, 'telegramGroup': False},
             'financePlanUpdated': {'telegramPersonal': True, 'telegramGroup': False},
+            # Групповые уведомления (включены по умолчанию)
+            'groupDailySummary': {'telegramGroup': True},
+            'groupSuccessfulDeals': {'telegramGroup': True},
         }
         firebase.save('notificationPrefs', notification_prefs)
     
@@ -1116,16 +1117,12 @@ async def settings_notif_tasks(update: Update, context: ContextTypes.DEFAULT_TYP
     # Получаем настройки задач (создаем дефолтные если нет)
     new_task = notification_prefs.get('newTask', {'telegramPersonal': True, 'telegramGroup': False})
     status_change = notification_prefs.get('statusChange', {'telegramPersonal': True, 'telegramGroup': False})
-    task_assigned = notification_prefs.get('taskAssigned', {'telegramPersonal': True, 'telegramGroup': False})
     task_comment = notification_prefs.get('taskComment', {'telegramPersonal': True, 'telegramGroup': False})
-    task_deadline = notification_prefs.get('taskDeadline', {'telegramPersonal': True, 'telegramGroup': False})
     
     message = "📋 Уведомления о задачах\n\n"
     message += f"📱 Новая задача: {'✅' if new_task.get('telegramPersonal') else '❌'}\n"
     message += f"📱 Изменение статуса: {'✅' if status_change.get('telegramPersonal') else '❌'}\n"
-    message += f"📱 Назначение задачи: {'✅' if task_assigned.get('telegramPersonal') else '❌'}\n"
     message += f"📱 Комментарий к задаче: {'✅' if task_comment.get('telegramPersonal') else '❌'}\n"
-    message += f"📱 Дедлайн задачи: {'✅' if task_deadline.get('telegramPersonal') else '❌'}\n"
     message += "\nНажмите на уведомление, чтобы переключить его."
     
     keyboard = [
@@ -1138,16 +1135,8 @@ async def settings_notif_tasks(update: Update, context: ContextTypes.DEFAULT_TYP
             callback_data="settings_toggle_statusChange"
         )],
         [InlineKeyboardButton(
-            f"{'✅' if task_assigned.get('telegramPersonal') else '❌'} Назначение задачи",
-            callback_data="settings_toggle_taskAssigned"
-        )],
-        [InlineKeyboardButton(
             f"{'✅' if task_comment.get('telegramPersonal') else '❌'} Комментарий",
             callback_data="settings_toggle_taskComment"
-        )],
-        [InlineKeyboardButton(
-            f"{'✅' if task_deadline.get('telegramPersonal') else '❌'} Дедлайн",
-            callback_data="settings_toggle_taskDeadline"
         )],
         [InlineKeyboardButton("🔙 Назад", callback_data="settings_notifications")]
     ]
@@ -1329,9 +1318,26 @@ async def settings_notif_finance(update: Update, context: ContextTypes.DEFAULT_T
 
 @require_auth
 async def settings_notif_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Настройки группового чата"""
+    """Настройки группового чата (только для администраторов)"""
     query = update.callback_query
     await query.answer()
+    
+    # Проверяем, является ли пользователь администратором
+    telegram_user_id = update.effective_user.id
+    if telegram_user_id not in user_sessions:
+        await query.answer("❌ Вы не авторизованы")
+        return
+    
+    user_id = user_sessions[telegram_user_id]['user_id']
+    user = firebase.get_by_id('users', user_id)
+    
+    if not user or user.get('role') != 'ADMIN':
+        await query.answer("❌ Доступно только администраторам")
+        await query.edit_message_text(
+            "❌ Настройки группового чата доступны только администраторам.",
+            reply_markup=get_back_button("settings_notifications")
+        )
+        return
     
     notification_prefs = firebase.get_by_id('notificationPrefs', 'default')
     if not notification_prefs:
@@ -1339,8 +1345,15 @@ async def settings_notif_group(update: Update, context: ContextTypes.DEFAULT_TYP
     
     telegram_group_chat_id = notification_prefs.get('telegramGroupChatId', '')
     
+    # Получаем настройки групповых уведомлений
+    group_daily_summary = notification_prefs.get('groupDailySummary', {'telegramGroup': True})
+    group_successful_deals = notification_prefs.get('groupSuccessfulDeals', {'telegramGroup': True})
+    
     message = "👥 Настройки группового чата\n\n"
     message += f"💬 ID группового чата: {telegram_group_chat_id if telegram_group_chat_id else 'Не настроен'}\n\n"
+    message += "Групповые уведомления:\n"
+    message += f"📋 Ежедневная сводка (9:00): {'✅' if group_daily_summary.get('telegramGroup') else '❌'}\n"
+    message += f"🎉 Успешные сделки: {'✅' if group_successful_deals.get('telegramGroup') else '❌'}\n\n"
     message += "Для получения ID группового чата:\n"
     message += "1. Добавьте бота в группу\n"
     message += "2. Отправьте любое сообщение в группу\n"
@@ -1348,6 +1361,14 @@ async def settings_notif_group(update: Update, context: ContextTypes.DEFAULT_TYP
     message += "4. Скопируйте ID и введите его здесь"
     
     keyboard = [
+        [InlineKeyboardButton(
+            f"{'✅' if group_daily_summary.get('telegramGroup') else '❌'} Ежедневная сводка",
+            callback_data="settings_toggle_groupDailySummary"
+        )],
+        [InlineKeyboardButton(
+            f"{'✅' if group_successful_deals.get('telegramGroup') else '❌'} Успешные сделки",
+            callback_data="settings_toggle_groupSuccessfulDeals"
+        )],
         [InlineKeyboardButton("📝 Ввести ID группового чата", callback_data="settings_group_set_chat_id")],
         [InlineKeyboardButton("🔙 Назад", callback_data="settings_notifications")]
     ]
@@ -1427,8 +1448,13 @@ async def settings_toggle_notification(update: Update, context: ContextTypes.DEF
         if not isinstance(current_setting, dict):
             current_setting = {'telegramPersonal': True, 'telegramGroup': False}
         
-        # Переключаем личные уведомления
-        current_setting['telegramPersonal'] = not current_setting.get('telegramPersonal', True)
+        # Переключаем уведомления в зависимости от типа
+        if setting_name in ['groupDailySummary', 'groupSuccessfulDeals']:
+            # Для групповых уведомлений переключаем telegramGroup
+            current_setting['telegramGroup'] = not current_setting.get('telegramGroup', True)
+        else:
+            # Для личных уведомлений переключаем telegramPersonal
+            current_setting['telegramPersonal'] = not current_setting.get('telegramPersonal', True)
         
         # Обновляем настройки
         notification_prefs[setting_name] = current_setting
@@ -1437,16 +1463,19 @@ async def settings_toggle_notification(update: Update, context: ContextTypes.DEF
         
         # Определяем, в какую категорию вернуться
         category = "settings_notifications"
-        if setting_name.startswith('newTask') or setting_name.startswith('statusChange') or setting_name.startswith('task'):
+        # Точное сравнение для всех настроек
+        if setting_name in ['newTask', 'statusChange', 'taskComment']:
             category = "settings_notif_tasks"
-        elif setting_name.startswith('doc'):
+        elif setting_name in ['docCreated', 'docUpdated', 'docShared']:
             category = "settings_notif_docs"
-        elif setting_name.startswith('meeting'):
+        elif setting_name in ['meetingCreated', 'meetingReminder', 'meetingUpdated']:
             category = "settings_notif_meetings"
-        elif setting_name.startswith('deal') or setting_name.startswith('client') or setting_name.startswith('contract'):
+        elif setting_name in ['dealCreated', 'dealStatusChanged', 'clientCreated', 'contractCreated']:
             category = "settings_notif_crm"
-        elif setting_name.startswith('purchase') or setting_name.startswith('finance'):
+        elif setting_name in ['purchaseRequestCreated', 'purchaseRequestStatusChanged', 'financePlanUpdated']:
             category = "settings_notif_finance"
+        elif setting_name in ['groupDailySummary', 'groupSuccessfulDeals']:
+            category = "settings_notif_group"
         
         # Возвращаемся в соответствующую категорию
         try:
@@ -1460,6 +1489,8 @@ async def settings_toggle_notification(update: Update, context: ContextTypes.DEF
                 await settings_notif_crm(update, context)
             elif category == "settings_notif_finance":
                 await settings_notif_finance(update, context)
+            elif category == "settings_notif_group":
+                await settings_notif_group(update, context)
             else:
                 await settings_notifications(update, context)
         except Exception as category_error:
@@ -2079,28 +2110,34 @@ async def periodic_check(context: ContextTypes.DEFAULT_TYPE):
             session['last_check'] = now
         
         # Проверяем успешные сделки для групповых уведомлений
-        won_deals = get_won_deals_today()
-        if won_deals:
-            notification_prefs = firebase.get_by_id('notificationPrefs', 'default')
-            telegram_chat_id = notification_prefs.get('telegramGroupChatId') if notification_prefs else None
-            
-            if telegram_chat_id:
-                clients = firebase.get_all('clients')
-                users = firebase.get_all('users')
-                for deal in won_deals:
-                    message = get_successful_deal_message(deal, clients, users)
-                    if message:
-                        try:
-                            await context.bot.send_message(
-                                chat_id=telegram_chat_id,
-                                text=message,
-                                parse_mode='HTML'
-                            )
-                            logger.info(f"Successfully sent deal notification to group {telegram_chat_id}")
-                        except Exception as e:
-                            logger.error(f"Error sending successful deal message: {e}")
+        notification_prefs = firebase.get_by_id('notificationPrefs', 'default')
+        if notification_prefs:
+            # Проверяем, включены ли уведомления об успешных сделках
+            group_successful_deals = notification_prefs.get('groupSuccessfulDeals', {'telegramGroup': True})
+            if group_successful_deals.get('telegramGroup', True):
+                won_deals = get_won_deals_today()
+                if won_deals:
+                    telegram_chat_id = notification_prefs.get('telegramGroupChatId')
+                    
+                    if telegram_chat_id:
+                        clients = firebase.get_all('clients')
+                        users = firebase.get_all('users')
+                        for deal in won_deals:
+                            message = get_successful_deal_message(deal, clients, users)
+                            if message:
+                                try:
+                                    await context.bot.send_message(
+                                        chat_id=telegram_chat_id,
+                                        text=message,
+                                        parse_mode='HTML'
+                                    )
+                                    logger.info(f"Successfully sent deal notification to group {telegram_chat_id}")
+                                except Exception as e:
+                                    logger.error(f"Error sending successful deal message: {e}")
+                    else:
+                        logger.warning("No telegramGroupChatId configured for deal notifications")
             else:
-                logger.warning("No telegramGroupChatId configured for deal notifications")
+                logger.debug("Group successful deals notifications are disabled")
     
     except Exception as e:
         logger.error(f"Error in periodic_check: {e}")
