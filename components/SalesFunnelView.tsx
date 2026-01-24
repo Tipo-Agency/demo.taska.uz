@@ -134,41 +134,72 @@ const SalesFunnelView: React.FC<SalesFunnelViewProps> = ({ deals, clients, users
   const handleSubmit = async (e?: React.FormEvent) => {
       if (e) e.preventDefault();
       
-      // Если воронка не указана, используем основную воронку из настроек
-      let finalFunnelId = funnelId;
-      if (!finalFunnelId) {
-          const notificationPrefs = await api.notificationPrefs.get();
-          finalFunnelId = notificationPrefs?.defaultFunnelId;
-      }
-      
-      // Если есть воронка, получаем первый этап, если stage не указан
-      let finalStage = stage;
-      if (finalFunnelId && !finalStage) {
-          const funnel = salesFunnels.find(f => f.id === finalFunnelId);
-          if (funnel && funnel.stages.length > 0) {
-              finalStage = funnel.stages[0].id;
+      try {
+          // Проверяем обязательные поля
+          const trimmedTitle = title.trim();
+          if (!trimmedTitle) {
+              alert('Пожалуйста, введите название сделки');
+              return;
           }
+          
+          // Если воронка не указана, используем основную воронку из настроек
+          let finalFunnelId = funnelId || selectedFunnelId;
+          if (!finalFunnelId) {
+              try {
+                  const notificationPrefs = await api.notificationPrefs.get();
+                  finalFunnelId = notificationPrefs?.defaultFunnelId || defaultFunnelId;
+              } catch (error) {
+                  console.error('Error loading notification prefs:', error);
+                  // Используем первую доступную воронку
+                  if (salesFunnels.length > 0) {
+                      finalFunnelId = salesFunnels[0].id;
+                  }
+              }
+          }
+          
+          // Если есть воронка, получаем первый этап, если stage не указан
+          let finalStage = stage;
+          if (finalFunnelId && !finalStage) {
+              const funnel = salesFunnels.find(f => f.id === finalFunnelId);
+              if (funnel && funnel.stages.length > 0) {
+                  finalStage = funnel.stages[0].id;
+              } else {
+                  // Если воронка не найдена, используем дефолтный этап
+                  finalStage = 'new';
+              }
+          }
+          
+          // Если stage все еще не указан, используем дефолтный
+          if (!finalStage) {
+              finalStage = 'new';
+          }
+          
+          const dealData: Deal = {
+              id: editingDeal ? editingDeal.id : `deal-${Date.now()}`,
+              title: trimmedTitle, 
+              clientId: undefined, // Клиент создается только при успешной сделке
+              contactName: contactName.trim() || undefined, 
+              amount: parseFloat(amount) || 0, 
+              currency: 'UZS', 
+              stage: finalStage, 
+              funnelId: finalFunnelId || undefined,
+              source: source || 'manual', 
+              assigneeId: assigneeId || undefined, 
+              notes: notes.trim() || undefined,
+              projectId: undefined, // Убрали проект
+              telegramChatId: editingDeal?.telegramChatId, 
+              telegramUsername: editingDeal?.telegramUsername, 
+              createdAt: editingDeal ? editingDeal.createdAt : new Date().toISOString(), 
+              comments: comments || []
+          };
+          
+          console.log('[DEAL] Saving deal:', dealData);
+          onSaveDeal(dealData);
+          setIsModalOpen(false);
+      } catch (error) {
+          console.error('[DEAL] Error saving deal:', error);
+          alert('Произошла ошибка при сохранении сделки. Попробуйте еще раз.');
       }
-      
-      onSaveDeal({
-          id: editingDeal ? editingDeal.id : `deal-${Date.now()}`,
-          title, 
-          clientId: undefined, // Клиент создается только при успешной сделке
-          contactName: contactName || undefined, 
-          amount: parseFloat(amount) || 0, 
-          currency: 'UZS', 
-          stage: finalStage, 
-          funnelId: finalFunnelId || undefined,
-          source, 
-          assigneeId, 
-          notes: notes || undefined,
-          projectId: undefined, // Убрали проект
-          telegramChatId: editingDeal?.telegramChatId, 
-          telegramUsername: editingDeal?.telegramUsername, 
-          createdAt: editingDeal ? editingDeal.createdAt : new Date().toISOString(), 
-          comments
-      });
-      setIsModalOpen(false);
   };
 
   const handleSendChat = async () => {

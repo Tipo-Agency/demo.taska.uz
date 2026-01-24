@@ -126,7 +126,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             </Button>
           </form>
         </Card>
-      </div>
     </AuthLayout>
   );
 };
