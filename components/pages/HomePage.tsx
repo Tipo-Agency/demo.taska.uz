@@ -112,7 +112,6 @@ export const HomePage: React.FC<HomePageProps> = ({
       !t.isArchived &&
       !['Выполнено', 'Done', 'Завершено'].includes(t.status) &&
       (t.assigneeId === currentUser?.id || t.assigneeIds?.includes(currentUser?.id))
-      )
   );
 
   // Непрочитанные уведомления
