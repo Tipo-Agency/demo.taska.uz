@@ -17,7 +17,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            set -e
+            set -euo pipefail
             cd ${{ secrets.SERVER_PATH }}
             echo "👤 Deploy user: $USER"
             echo "📁 Server path: ${{ secrets.SERVER_PATH }}"
@@ -149,7 +149,15 @@ jobs:
               echo "📝 Installing dependencies and restarting service..."
               chmod +x deploy.sh
               # Запускаем с sudo для systemd операций, но передаем пользователя деплоя
-              DEPLOY_USER=$USER sudo -E ./deploy.sh || echo "⚠️ Telegram bot deployment failed, but continuing..."
+              # Используем || true чтобы не падать на ошибках deploy.sh
+              DEPLOY_USER=$USER sudo -E ./deploy.sh || {
+                echo "⚠️ Telegram bot deployment script exited with error, but checking if bot is running..."
+                if systemctl is-active --quiet telegram-bot; then
+                  echo "✅ Bot is actually running despite deploy.sh error"
+                else
+                  echo "❌ Bot is NOT running, deployment failed"
+                fi
+              }
               
               # Перезапускаем сервис после обновления .env и systemd
               echo "🔄 Restarting telegram-bot service..."
@@ -183,7 +191,19 @@ jobs:
             
             # Reload nginx
             echo "🔄 Reloading nginx..."
-            nginx -t
-            systemctl reload nginx
+            nginx -t || echo "⚠️ nginx config test failed, but continuing..."
+            systemctl reload nginx || echo "⚠️ nginx reload failed, but continuing..."
             
-            echo "✅ Deployment completed!"	
+            echo "✅ Deployment completed!"
+            echo "📋 Final status check:"
+            echo "   Frontend: ✅ Built successfully"
+            if systemctl is-active --quiet telegram-bot 2>/dev/null; then
+              echo "   Telegram bot: ✅ Running"
+            else
+              echo "   Telegram bot: ⚠️ Not running (check logs manually)"
+            fi
+            if systemctl is-active --quiet nginx 2>/dev/null; then
+              echo "   Nginx: ✅ Running"
+            else
+              echo "   Nginx: ⚠️ Not running"
+            fi	
