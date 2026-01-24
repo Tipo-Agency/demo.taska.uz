@@ -43,7 +43,7 @@ export const useAppLogic = () => {
   const crmSlice = useCRMLogic(showNotification);
   const [salesFunnels, setSalesFunnels] = useState<SalesFunnel[]>([]);
   const contentSlice = useContentLogic(showNotification, settingsSlice.state.activeTableId);
-  const taskSlice = useTaskLogic(showNotification, authSlice.state.currentUser, authSlice.state.users, settingsSlice.state.automationRules, contentSlice.state.docs, contentSlice.actions.saveDoc);
+  const taskSlice = useTaskLogic(showNotification, authSlice.state.currentUser, authSlice.state.users, settingsSlice.state.automationRules, contentSlice.state.docs, contentSlice.actions.saveDoc, settingsSlice.state.notificationPrefs);
   const financeSlice = useFinanceLogic(showNotification);
   const bpmSlice = useBPMLogic(showNotification);
   const inventorySlice = useInventoryLogic(showNotification);

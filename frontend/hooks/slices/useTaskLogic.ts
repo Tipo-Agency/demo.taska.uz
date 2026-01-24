@@ -6,7 +6,7 @@ import { uploadTaskAttachment } from '../../../services/firebaseStorage';
 import { getTodayLocalDate, getDateDaysFromNow } from '../../../utils/dateUtils';
 import { notifyTaskCreated, notifyTaskStatusChanged, NotificationContext } from '../../../services/notificationService';
 
-export const useTaskLogic = (showNotification: (msg: string) => void, currentUser: User | null, users: User[], automationRules: AutomationRule[] = [], docs: Doc[] = [], onSaveDoc?: (docData: any, tableId?: string) => Doc | void) => {
+export const useTaskLogic = (showNotification: (msg: string) => void, currentUser: User | null, users: User[], automationRules: AutomationRule[] = [], docs: Doc[] = [], onSaveDoc?: (docData: any, tableId?: string) => Doc | void, notificationPrefs?: NotificationPreferences) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [statuses, setStatuses] = useState<StatusOption[]>([]);
@@ -74,7 +74,8 @@ export const useTaskLogic = (showNotification: (msg: string) => void, currentUse
 
   const saveTask = (taskData: Partial<Task>, activeTableId: string) => {
     let updatedTasks: Task[];
-    const notificationPrefs = api.notificationPrefs.get();
+    // Используем переданные notificationPrefs или получаем из API (для обратной совместимости)
+    const currentNotificationPrefs = notificationPrefs || api.notificationPrefs.get();
 
     if (taskData.id) {
         const oldTask = tasks.find(t => t.id === taskData.id);
@@ -108,7 +109,7 @@ export const useTaskLogic = (showNotification: (msg: string) => void, currentUse
                 const context: NotificationContext = {
                     currentUser,
                     allUsers: users,
-                    notificationPrefs
+                    notificationPrefs: currentNotificationPrefs
                 };
                 notifyTaskStatusChanged(newTask, oldStatus || '?', taskData.status, assigneeUser, { context }).catch(() => {});
                 processAutomation(newTask, 'status_change');
@@ -152,7 +153,7 @@ export const useTaskLogic = (showNotification: (msg: string) => void, currentUse
                 const context: NotificationContext = {
                     currentUser,
                     allUsers: users,
-                    notificationPrefs
+                    notificationPrefs: currentNotificationPrefs
                 };
                 notifyTaskCreated(newTask, assigneeUser, { context }).catch(() => {});
                 processAutomation(newTask, 'new_task');
@@ -214,7 +215,7 @@ export const useTaskLogic = (showNotification: (msg: string) => void, currentUse
             const context: NotificationContext = {
                 currentUser,
                 allUsers: users,
-                notificationPrefs
+                notificationPrefs: currentNotificationPrefs
             };
             notifyTaskCreated(newTask, assigneeUser, { context }).catch(() => {});
             processAutomation(newTask, 'new_task');

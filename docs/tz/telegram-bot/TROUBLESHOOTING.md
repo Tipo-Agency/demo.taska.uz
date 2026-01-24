@@ -51,7 +51,7 @@ sudo journalctl -u telegram-bot -f
 
 5. **Очистите очередь обновлений:**
 ```bash
-curl -X POST "https://api.telegram.org/bot8348357222:AAHzzrWFOE7n3MiGYKgugqXbUSehTW1-D1c/getUpdates?offset=-1"
+curl -X POST "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getUpdates?offset=-1"
 ```
 
 ### Проблема 2: Ошибка 409 Conflict
@@ -142,7 +142,7 @@ cat /var/www/tipa.taska.uz/telegram-bot/.env
 ```
 Должен содержать:
 ```
-TELEGRAM_BOT_TOKEN=8348357222:AAHzzrWFOE7n3MiGYKgugqXbUSehTW1-D1c
+TELEGRAM_BOT_TOKEN=your_bot_token_here
 ```
 
 4. **Проверьте firebase-credentials.json:**
@@ -193,7 +193,7 @@ pip show python-telegram-bot
 
 2. **Очистите очередь обновлений:**
 ```bash
-curl -X POST "https://api.telegram.org/bot8348357222:AAHzzrWFOE7n3MiGYKgugqXbUSehTW1-D1c/getUpdates?offset=-1"
+curl -X POST "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getUpdates?offset=-1"
 ```
 
 3. **Проверьте, нет ли других ботов с тем же токеном:**

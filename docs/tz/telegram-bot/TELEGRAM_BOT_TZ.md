@@ -19,9 +19,7 @@ Telegram бот для интеграции с системой управлен
 - **Планировщик**: APScheduler для периодических задач
 
 ### 1.3. Токен бота
-```
-8348357222:AAHzzrWFOE7n3MiGYKgugqXbUSehTW1-D1c
-```
+Токен настраивается через GitHub Secrets (`TELEGRAM_BOT_TOKEN`) и автоматически устанавливается в `.env` файл при деплое.
 
 ## 2. Функциональные требования
 
@@ -424,7 +422,7 @@ telegram-bot/
 ### 6.1. Требования
 - Python 3.10+
 - Доступ к Firebase Firestore
-- Telegram Bot Token: `8348357222:AAHzzrWFOE7n3MiGYKgugqXbUSehTW1-D1c`
+- Telegram Bot Token: настраивается через GitHub Secrets
 
 ### 6.2. Установка
 ```bash
@@ -443,7 +441,7 @@ python-dotenv==1.0.0
 ### 6.4. Конфигурация
 Создать файл `.env`:
 ```
-TELEGRAM_BOT_TOKEN=8348357222:AAHzzrWFOE7n3MiGYKgugqXbUSehTW1-D1c
+TELEGRAM_BOT_TOKEN=your_bot_token_here
 FIREBASE_PROJECT_ID=tipa-task-manager
 FIREBASE_CREDENTIALS_PATH=path/to/credentials.json
 DEFAULT_TIMEZONE=Asia/Tashkent
