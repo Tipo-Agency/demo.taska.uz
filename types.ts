@@ -350,7 +350,10 @@ export interface Meeting {
   time: string; // 'HH:mm'
   participantIds: string[];
   summary: string;
-  recurrence?: 'none' | 'daily' | 'weekly' | 'monthly';
+  type: 'client' | 'work'; // Тип встречи: с клиентом или рабочая (планерка)
+  dealId?: string; // ID сделки (обязательно для встреч с клиентами)
+  clientId?: string; // ID клиента (необязательно, берется из сделки)
+  recurrence?: 'none' | 'daily' | 'weekly' | 'monthly'; // Повторение (только для рабочих встреч)
   isArchived?: boolean; // Архив
 }
 

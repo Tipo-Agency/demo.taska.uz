@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Deal, Client, Contract, User, Project, Task, OneTimeDeal, AccountsReceivable } from '../../types';
+import { Deal, Client, Contract, User, Project, Task, OneTimeDeal, AccountsReceivable, Meeting } from '../../types';
 import SalesFunnelView from '../SalesFunnelView';
 import ClientsView from '../ClientsView';
 
@@ -14,12 +14,13 @@ interface CRMModuleProps {
   users: User[];
   projects?: Project[];
   tasks?: Task[];
+  meetings?: Meeting[];
   currentUser?: User | null;
   actions: any;
   autoOpenCreateModal?: boolean;
 }
 
-export const CRMModule: React.FC<CRMModuleProps> = ({ view, deals, clients, contracts, oneTimeDeals = [], accountsReceivable = [], users, salesFunnels = [], projects, tasks, currentUser, actions, autoOpenCreateModal = false }) => {
+export const CRMModule: React.FC<CRMModuleProps> = ({ view, deals, clients, contracts, oneTimeDeals = [], accountsReceivable = [], users, salesFunnels = [], projects, tasks, meetings = [], currentUser, actions, autoOpenCreateModal = false }) => {
   if (view === 'sales-funnel') {
       return <SalesFunnelView 
         deals={deals} 
@@ -27,6 +28,7 @@ export const CRMModule: React.FC<CRMModuleProps> = ({ view, deals, clients, cont
         users={users}
         projects={projects}
         tasks={tasks}
+        meetings={meetings}
         salesFunnels={salesFunnels}
         currentUser={currentUser}
         onSaveDeal={actions.saveDeal} 
@@ -34,6 +36,9 @@ export const CRMModule: React.FC<CRMModuleProps> = ({ view, deals, clients, cont
         onCreateTask={actions.openTaskModal ? (task) => actions.openTaskModal(task) : undefined}
         onCreateClient={actions.saveClient}
         onOpenTask={actions.openTaskModal}
+        onSaveMeeting={actions.saveMeeting}
+        onDeleteMeeting={actions.deleteMeeting}
+        onUpdateMeetingSummary={actions.updateMeetingSummary}
         onOpenSettings={actions.openSettings ? () => actions.openSettings('sales-funnels') : undefined}
         autoOpenCreateModal={autoOpenCreateModal}
       />;

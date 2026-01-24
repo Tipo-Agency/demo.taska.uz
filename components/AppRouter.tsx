@@ -238,6 +238,7 @@ export const AppRouter: React.FC<AppRouterProps> = (props) => {
                             statuses={props.statuses} priorities={props.priorities} tables={props.tables}
                             docs={props.docs} folders={props.folders} meetings={props.meetings}
                             contentPosts={props.contentPosts} businessProcesses={props.businessProcesses}
+                            clients={props.clients} deals={props.deals}
                             actions={actions}
                         />;
   }
@@ -263,7 +264,7 @@ export const AppRouter: React.FC<AppRouterProps> = (props) => {
   }
 
   if (view === 'sales-funnel') {
-      return <CRMModule view={view} deals={props.deals} clients={props.clients} contracts={props.contracts} oneTimeDeals={props.oneTimeDeals} accountsReceivable={props.accountsReceivable} users={props.users} salesFunnels={props.salesFunnels} projects={props.projects} tasks={props.allTasks} currentUser={props.currentUser} actions={actions} />;
+      return <CRMModule view={view} deals={props.deals} clients={props.clients} contracts={props.contracts} oneTimeDeals={props.oneTimeDeals} accountsReceivable={props.accountsReceivable} users={props.users} salesFunnels={props.salesFunnels} projects={props.projects} tasks={props.allTasks} meetings={props.meetings} currentUser={props.currentUser} actions={actions} />;
   }
 
   if (view === 'finance') {
@@ -303,7 +304,7 @@ export const AppRouter: React.FC<AppRouterProps> = (props) => {
           // Добавляем в таблицы, но не сохраняем (чтобы не показывалась в настройках)
           // Модуль будет работать с этой фиктивной таблицей
       }
-      return <MeetingsModule table={meetingsTable} meetings={props.meetings} users={props.users} tables={props.tables} actions={actions} />;
+      return <MeetingsModule table={meetingsTable} meetings={props.meetings} users={props.users} clients={props.clients} deals={props.deals} tables={props.tables} actions={actions} />;
   }
 
   if (view === 'docs') {

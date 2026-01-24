@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Deal, Client, User, Comment, Task, Project, SalesFunnel } from '../types';
-import { Plus, KanbanSquare, List as ListIcon, X, Send, MessageSquare, Instagram, Globe, UserPlus, Bot, Edit2, TrendingUp, CheckSquare, CheckCircle2, XCircle, Trash2 } from 'lucide-react';
+import { Deal, Client, User, Comment, Task, Project, SalesFunnel, Meeting } from '../types';
+import { Plus, KanbanSquare, List as ListIcon, X, Send, MessageSquare, Instagram, Globe, UserPlus, Bot, Edit2, TrendingUp, CheckSquare, CheckCircle2, XCircle, Trash2, Calendar, Clock, Users } from 'lucide-react';
 import { sendClientMessage } from '../services/telegramService';
 import { instagramService } from '../services/instagramService';
 import { DynamicIcon } from './AppIcons';
@@ -15,12 +15,16 @@ interface SalesFunnelViewProps {
   users: User[];
   projects?: Project[];
   tasks?: Task[];
+  meetings?: Meeting[];
   salesFunnels?: SalesFunnel[];
   onSaveDeal: (deal: Deal) => void;
   onDeleteDeal: (id: string) => void;
   onCreateTask?: (task: Partial<Task>) => void;
   onCreateClient?: (client: Client) => void;
   onOpenTask?: (task: Task) => void;
+  onSaveMeeting?: (meeting: Meeting) => void;
+  onDeleteMeeting?: (meetingId: string) => void;
+  onUpdateMeetingSummary?: (meetingId: string, summary: string) => void;
   onOpenSettings?: () => void; // Переход в настройки для создания воронки
   autoOpenCreateModal?: boolean; // Автоматически открыть модалку создания
 }
@@ -32,11 +36,11 @@ const STAGES = [
     { id: 'negotiation', label: 'Переговоры', color: 'bg-orange-200 dark:bg-orange-900' },
 ];
 
-const SalesFunnelView: React.FC<SalesFunnelViewProps> = ({ deals, clients, users, projects = [], tasks = [], salesFunnels = [], currentUser, onSaveDeal, onDeleteDeal, onCreateTask, onCreateClient, onOpenTask, onOpenSettings, autoOpenCreateModal = false }) => {
+const SalesFunnelView: React.FC<SalesFunnelViewProps> = ({ deals, clients, users, projects = [], tasks = [], meetings = [], salesFunnels = [], currentUser, onSaveDeal, onDeleteDeal, onCreateTask, onCreateClient, onOpenTask, onSaveMeeting, onDeleteMeeting, onUpdateMeetingSummary, onOpenSettings, autoOpenCreateModal = false }) => {
   const [viewMode, setViewMode] = useState<'kanban' | 'list' | 'rejected'>('kanban');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
-  const [modalTab, setModalTab] = useState<'details' | 'chat' | 'tasks'>('details');
+  const [modalTab, setModalTab] = useState<'details' | 'chat' | 'tasks' | 'meetings'>('details');
 
   const [title, setTitle] = useState('');
   const [clientName, setClientName] = useState(''); // Просто название клиента, без создания
@@ -318,6 +322,7 @@ const SalesFunnelView: React.FC<SalesFunnelViewProps> = ({ deals, clients, users
   
   // Получаем задачи, связанные с текущей сделкой
   const dealTasks = editingDeal ? tasks.filter(t => t.dealId === editingDeal.id) : [];
+  const dealMeetings = editingDeal ? (meetings || []).filter(m => m.dealId === editingDeal.id && !m.isArchived) : [];
 
   const handleMarkAsWon = () => {
     if (!editingDeal) return;
@@ -653,6 +658,7 @@ const SalesFunnelView: React.FC<SalesFunnelViewProps> = ({ deals, clients, users
                               <button onClick={() => setModalTab('details')} className={`px-2 py-1 rounded-full ${modalTab === 'details' ? 'bg-white dark:bg-[#191919]' : ''}`}>Детали</button>
                               <button onClick={() => setModalTab('chat')} className={`px-2 py-1 rounded-full ${modalTab === 'chat' ? 'bg-white dark:bg-[#191919]' : ''}`}>Чат</button>
                               <button onClick={() => setModalTab('tasks')} className={`px-2 py-1 rounded-full ${modalTab === 'tasks' ? 'bg-white dark:bg-[#191919]' : ''}`}>Задачи</button>
+                              <button onClick={() => setModalTab('meetings')} className={`px-2 py-1 rounded-full ${modalTab === 'meetings' ? 'bg-white dark:bg-[#191919]' : ''}`}>Встречи</button>
                           </div>
                       </div>
                       <button onClick={() => setIsModalOpen(false)} className="shrink-0"><X size={18} className="text-gray-400"/></button>
@@ -967,6 +973,94 @@ const SalesFunnelView: React.FC<SalesFunnelViewProps> = ({ deals, clients, users
                                           </>
                                       )}
                                   </div>
+                              </div>
+                          ) : modalTab === 'meetings' ? (
+                              <div className="flex-1 p-4 md:p-6 overflow-y-auto flex flex-col">
+                                  <div className="flex items-center justify-between mb-4">
+                                      <h4 className="font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                                          <Calendar size={18} /> Встречи по сделке
+                                      </h4>
+                                      {dealMeetings.length > 0 && (
+                                          <span className="text-xs text-gray-500 dark:text-gray-400">{dealMeetings.length}</span>
+                                      )}
+                                  </div>
+                                  
+                                  {/* Список встреч */}
+                                  {dealMeetings.length > 0 ? (
+                                      <div className="space-y-3 mb-4">
+                                          {dealMeetings.map(meeting => (
+                                              <div 
+                                                  key={meeting.id}
+                                                  className="p-4 bg-white dark:bg-[#333] border border-gray-200 dark:border-[#444] rounded-lg hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                                              >
+                                                  <div className="font-medium text-sm text-gray-800 dark:text-gray-200 mb-2">{meeting.title}</div>
+                                                  <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mb-2">
+                                                      <div className="flex items-center gap-1">
+                                                          <Calendar size={12} />
+                                                          <span>{new Date(meeting.date).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
+                                                      </div>
+                                                      <div className="flex items-center gap-1">
+                                                          <Clock size={12} />
+                                                          <span>{meeting.time}</span>
+                                                      </div>
+                                                      {meeting.participantIds && meeting.participantIds.length > 0 && (
+                                                          <div className="flex items-center gap-1">
+                                                              <Users size={12} />
+                                                              <span>{meeting.participantIds.length} участников</span>
+                                                          </div>
+                                                      )}
+                                                  </div>
+                                                  {meeting.summary && (
+                                                      <div className="text-xs text-gray-600 dark:text-gray-400 mt-2 p-2 bg-gray-50 dark:bg-[#404040] rounded">
+                                                          {meeting.summary}
+                                                      </div>
+                                                  )}
+                                                  {onDeleteMeeting && (
+                                                      <button
+                                                          onClick={() => {
+                                                              if (confirm('Удалить встречу?')) {
+                                                                  onDeleteMeeting(meeting.id);
+                                                              }
+                                                          }}
+                                                          className="mt-2 text-xs text-red-500 hover:text-red-700 dark:hover:text-red-400"
+                                                      >
+                                                          Удалить
+                                                      </button>
+                                                  )}
+                                              </div>
+                                          ))}
+                                      </div>
+                                  ) : (
+                                      <div className="text-center py-8 text-gray-400 dark:text-gray-500 text-sm">
+                                          Нет встреч по этой сделке
+                                      </div>
+                                  )}
+                                  
+                                  {/* Кнопка создания встречи */}
+                                  {onSaveMeeting && editingDeal && (
+                                      <button
+                                          onClick={() => {
+                                              // Создаем новую встречу, привязанную к сделке
+                                              const newMeeting: Meeting = {
+                                                  id: `m-${Date.now()}`,
+                                                  tableId: 'meetings-system',
+                                                  type: 'client',
+                                                  dealId: editingDeal.id,
+                                                  clientId: editingDeal.clientId,
+                                                  title: `Встреча: ${editingDeal.title}`,
+                                                  date: new Date().toISOString().split('T')[0],
+                                                  time: '10:00',
+                                                  participantIds: editingDeal.assigneeId ? [editingDeal.assigneeId] : [],
+                                                  summary: '',
+                                                  isArchived: false
+                                              };
+                                              onSaveMeeting(newMeeting);
+                                          }}
+                                          className="w-full p-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-center gap-2 text-gray-600 dark:text-gray-400 hover:text-blue-600"
+                                      >
+                                          <Plus size={18} /> Создать встречу
+                                      </button>
+                                  )}
                               </div>
                           ) : null}
                       </div>

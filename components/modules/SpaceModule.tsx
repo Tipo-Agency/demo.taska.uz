@@ -1,6 +1,6 @@
 
 import React, { useMemo, useState } from 'react';
-import { TableCollection, Task, User, Project, StatusOption, PriorityOption, Doc, Folder, Meeting, ContentPost, ViewMode, BusinessProcess } from '../../types';
+import { TableCollection, Task, User, Project, StatusOption, PriorityOption, Doc, Folder, Meeting, ContentPost, ViewMode, BusinessProcess, Client } from '../../types';
 import TableView from '../TableView';
 import KanbanBoard from '../KanbanBoard';
 import GanttView from '../GanttView';
@@ -26,11 +26,13 @@ interface SpaceModuleProps {
   meetings: Meeting[];
   contentPosts: ContentPost[];
   businessProcesses?: BusinessProcess[];
+  clients?: Client[];
+  deals?: Deal[];
   actions: any;
 }
 
 export const SpaceModule: React.FC<SpaceModuleProps> = ({
-  activeTable, viewMode, tasks, users, currentUser, projects, statuses, priorities, tables, docs, folders, meetings, contentPosts, businessProcesses = [], actions
+  activeTable, viewMode, tasks, users, currentUser, projects, statuses, priorities, tables, docs, folders, meetings, contentPosts, businessProcesses = [], clients = [], deals = [], actions
 }) => {
   const isAggregator = activeTable?.isSystem && activeTable?.type === 'tasks';
 
@@ -393,7 +395,7 @@ export const SpaceModule: React.FC<SpaceModuleProps> = ({
         return (
             <div className="px-6 h-full flex flex-col min-h-0">
                 <MeetingsView 
-                    meetings={meetings} users={users} tableId={activeTable.id} showAll={activeTable.isSystem} tables={tables} 
+                    meetings={meetings} users={users} clients={clients} deals={deals} tableId={activeTable.id} showAll={activeTable.isSystem} tables={tables} 
                     onSaveMeeting={actions.saveMeeting} onDeleteMeeting={actions.deleteMeeting} onUpdateSummary={actions.updateMeetingSummary} 
                 />
             </div>
