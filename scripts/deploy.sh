@@ -26,13 +26,17 @@ fi
 git config --global --add safe.directory "$SERVER_PATH" || true
 echo "✅ Ownership fixed"
 
-# 2. Обновляем код
+# 2. Обновляем код (если еще не обновлен)
 echo ""
 echo "📥 Step 2: Updating code..."
-git fetch origin || { echo "⚠️ git fetch failed, but continuing..."; }
-git reset --hard origin/main || { echo "⚠️ git reset failed, but continuing..."; }
-sudo chown -R "$USER:$USER" "$SERVER_PATH" || true
-echo "✅ Code updated"
+if ! git diff --quiet HEAD origin/main 2>/dev/null; then
+  git fetch origin || { echo "⚠️ git fetch failed, but continuing..."; }
+  git reset --hard origin/main || { echo "⚠️ git reset failed, but continuing..."; }
+  sudo chown -R "$USER:$USER" "$SERVER_PATH" || true
+  echo "✅ Code updated"
+else
+  echo "✅ Code already up to date"
+fi
 
 # 3. Деплой фронтенда
 echo ""

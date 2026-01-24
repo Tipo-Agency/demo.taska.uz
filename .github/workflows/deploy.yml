@@ -18,6 +18,10 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             cd ${{ secrets.SERVER_PATH }}
+            # Сначала обновляем код, чтобы скрипт был доступен
+            git fetch origin
+            git reset --hard origin/main
+            # Теперь вызываем скрипт деплоя
             chmod +x scripts/deploy.sh
             SERVER_PATH="${{ secrets.SERVER_PATH }}" \
             TELEGRAM_BOT_TOKEN="${{ secrets.TELEGRAM_BOT_TOKEN }}" \
