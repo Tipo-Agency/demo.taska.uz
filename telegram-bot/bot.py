@@ -930,6 +930,10 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
 async def handle_bot_mention(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Обработчик упоминания бота в группе - начало создания задачи из сообщения"""
     try:
+        # Игнорируем команды - они обрабатываются через CommandHandler
+        if update.message and update.message.text and update.message.text.startswith('/'):
+            return ConversationHandler.END
+        
         # Проверяем, что это сообщение в группе
         if not update.message or update.message.chat.type not in ['group', 'supergroup']:
             return ConversationHandler.END
@@ -1552,6 +1556,7 @@ def main():
         fallbacks=[CommandHandler('cancel', lambda u, c: ConversationHandler.END)],
         name="task_from_message",
         persistent=False,
+        per_message=True,  # Включаем отслеживание callback query для каждого сообщения
     )
     
     # ConversationHandler для авторизации
@@ -1566,8 +1571,9 @@ def main():
     )
     
     # Регистрируем обработчики
-    application.add_handler(task_from_message_handler)
-    application.add_handler(auth_handler)
+    # ВАЖНО: Сначала регистрируем CommandHandler'ы, чтобы команды обрабатывались первыми
+    # ConversationHandler должен быть зарегистрирован после, чтобы не перехватывать команды
+    application.add_handler(auth_handler)  # ConversationHandler для /start
     application.add_handler(CommandHandler('logout', logout))
     application.add_handler(CommandHandler('help', help_command))
     
@@ -1576,6 +1582,9 @@ def main():
     application.add_handler(CommandHandler('deal', show_deal_in_group))
     application.add_handler(CommandHandler('meeting', show_meeting_in_group))
     application.add_handler(CommandHandler('document', show_document_in_group))
+    
+    # ConversationHandler для создания задачи из сообщения (регистрируем последним)
+    application.add_handler(task_from_message_handler)
     
     # Регистрируем обработчик ошибок
     application.add_error_handler(error_handler)
