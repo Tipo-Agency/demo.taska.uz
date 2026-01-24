@@ -13,5 +13,8 @@ export { MeetingCard } from './meetings/MeetingCard';
 // Activity
 export { ActivityItem } from './activity/ActivityItem';
 
+// Processes
+export { ProcessCard } from './processes/ProcessCard';
+
 // Common
 export * from './common';
