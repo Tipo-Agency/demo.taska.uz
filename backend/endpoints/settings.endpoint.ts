@@ -71,3 +71,29 @@ export const automationEndpoint = {
         await Promise.all(rules.map(rule => firestoreService.save(AUTOMATION_RULES_COLLECTION, rule)));
     },
 };
+
+// Notification Queue endpoint для отправки уведомлений через бота
+const NOTIFICATION_QUEUE_COLLECTION = 'notificationQueue';
+
+export const notificationQueueEndpoint = {
+    add: async (task: {
+        type: string;
+        userId: string;
+        message: string;
+        chatId: string;
+        metadata?: Record<string, any>;
+    }): Promise<void> => {
+        const notificationTask = {
+            id: `notif_${Date.now()}_${task.userId}`,
+            type: task.type,
+            userId: task.userId,
+            message: task.message,
+            chatId: task.chatId,
+            metadata: task.metadata || {},
+            createdAt: new Date().toISOString(),
+            sent: false,
+            error: null,
+        };
+        await firestoreService.save(NOTIFICATION_QUEUE_COLLECTION, notificationTask);
+    },
+};

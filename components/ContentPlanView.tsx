@@ -89,32 +89,32 @@ const ContentPlanView: React.FC<ContentPlanViewProps> = ({
       if (!date) setDate(new Date().toISOString().split('T')[0]);
   }, []);
 
-  // Автоматическая синхронизация данных каждые 15 секунд и при фокусе на окне
-  const [isSyncing, setIsSyncing] = useState(false);
-  const syncData = async () => {
-      if (isSyncing) return; // Предотвращаем параллельные синхронизации
-      setIsSyncing(true);
+  // Обновление данных из Firebase (вместо старой синхронизации)
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const refreshData = async () => {
+      if (isRefreshing) return; // Предотвращаем параллельные обновления
+      setIsRefreshing(true);
       try {
-          await api.sync();
+          // Данные загружаются напрямую из Firebase через api.*.getAll()
           // Отправляем событие для обновления данных в родительском компоненте
           window.dispatchEvent(new CustomEvent('contentPlanSync'));
       } catch (error) {
-          console.error('Ошибка синхронизации контент-плана:', error);
+          console.error('Ошибка обновления контент-плана:', error);
       } finally {
-          setIsSyncing(false);
+          setIsRefreshing(false);
       }
   };
 
   useEffect(() => {
-      // Синхронизация при монтировании
-      syncData();
+      // Обновление данных при монтировании
+      refreshData();
 
-      // Периодическая синхронизация каждые 15 секунд
-      const interval = setInterval(syncData, 15000);
+      // Периодическое обновление каждые 15 секунд
+      const interval = setInterval(refreshData, 15000);
 
-      // Синхронизация при фокусе на окне
+      // Обновление при фокусе на окне
       const handleFocus = () => {
-          syncData();
+          refreshData();
       };
       window.addEventListener('focus', handleFocus);
 
@@ -682,13 +682,13 @@ const ContentPlanView: React.FC<ContentPlanViewProps> = ({
                 </div>
               </div>
               <button 
-                onClick={syncData} 
-                disabled={isSyncing}
+                onClick={refreshData} 
+                disabled={isRefreshing}
                 className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-[#2a2a2a] disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Обновить данные"
               >
-                <RefreshCw size={16} className={isSyncing ? 'animate-spin' : ''} /> 
-                {isSyncing ? 'Обновление...' : 'Обновить'}
+                <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} /> 
+                {isRefreshing ? 'Обновление...' : 'Обновить'}
               </button>
               <button onClick={handleOpenCreate} className={`px-4 py-2 rounded-lg ${getButtonColor()} text-white text-sm font-medium flex items-center gap-2 shadow-sm`}>
                 <Plus size={18} /> Создать

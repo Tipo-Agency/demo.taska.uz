@@ -45,11 +45,14 @@ from notifications import (
     check_new_tasks, check_new_deals, check_upcoming_meetings,
     get_successful_deal_message
 )
+from notification_queue import (
+    get_pending_notifications, mark_notification_sent, cleanup_old_notifications
+)
 from scheduler import TaskScheduler
 from utils import get_today_date, is_overdue
 
 # Версия кода - определяем ДО всего остального
-CODE_VERSION_AT_START = "2026-01-21-v7"
+CODE_VERSION_AT_START = "2026-01-24-refactored"
 BOT_FILE_PATH = os.path.abspath(__file__)
 
 # Настройка логирования
@@ -2069,9 +2072,44 @@ async def show_document_in_group(update: Update, context: ContextTypes.DEFAULT_T
             pass
 
 async def periodic_check(context: ContextTypes.DEFAULT_TYPE):
-    """Периодическая проверка новых задач, заявок и т.д."""
+    """Периодическая проверка новых задач, заявок и обработка очереди уведомлений"""
     try:
         now = datetime.now()
+        
+        # Обрабатываем очередь уведомлений из Firebase (от веб-приложения)
+        try:
+            pending_notifications = get_pending_notifications(limit=20)
+            logger.info(f"[PERIODIC] Processing {len(pending_notifications)} pending notifications from queue")
+            
+            for notification_task in pending_notifications:
+                task_id = notification_task.get('id')
+                chat_id = notification_task.get('chatId')
+                message = notification_task.get('message')
+                
+                if not chat_id or not message:
+                    logger.warning(f"[PERIODIC] Invalid notification task {task_id}: missing chatId or message")
+                    mark_notification_sent(task_id, success=False, error="Missing chatId or message")
+                    continue
+                
+                try:
+                    await context.bot.send_message(
+                        chat_id=chat_id,
+                        text=message,
+                        parse_mode='HTML'
+                    )
+                    mark_notification_sent(task_id, success=True)
+                    logger.info(f"[PERIODIC] Sent notification {task_id} to {chat_id}")
+                except Exception as e:
+                    error_msg = str(e)
+                    mark_notification_sent(task_id, success=False, error=error_msg)
+                    logger.error(f"[PERIODIC] Error sending notification {task_id}: {e}", exc_info=True)
+            
+            # Очищаем старые уведомления (раз в час, проверяем случайно)
+            import random
+            if random.random() < 0.1:  # 10% вероятность
+                cleanup_old_notifications(days=7)
+        except Exception as e:
+            logger.error(f"[PERIODIC] Error processing notification queue: {e}", exc_info=True)
         
         # Проверяем активность пользователей
         for telegram_user_id, session in list(user_sessions.items()):
@@ -2091,20 +2129,108 @@ async def periodic_check(context: ContextTypes.DEFAULT_TYPE):
             
             # Проверяем новые задачи
             last_check = session.get('last_check', now)
-            new_tasks = check_new_tasks(user_id, last_check)
-            for task in new_tasks:
-                users = firebase.get_all('users')
-                projects = firebase.get_all('projects')
-                message = format_task_message(task, users, projects)
-                keyboard = get_task_menu(task.get('id'))
-                try:
-                    await context.bot.send_message(
-                        chat_id=telegram_user_id,
-                        text=message,
-                        reply_markup=keyboard
-                    )
-                except Exception as e:
-                    logger.error(f"Error sending task notification: {e}")
+            
+            # Получаем настройки уведомлений
+            notification_prefs = firebase.get_by_id('notificationPrefs', 'default')
+            # ВСЕ УВЕДОМЛЕНИЯ БАЗОВО АКТИВНЫ - если настройка не существует, считаем что она включена
+            if notification_prefs:
+                new_task_setting = notification_prefs.get('newTask', {'telegramPersonal': True, 'telegramGroup': False})
+                # Если настройка существует но не является словарем, создаем дефолтную
+                if not isinstance(new_task_setting, dict):
+                    new_task_setting = {'telegramPersonal': True, 'telegramGroup': False}
+            else:
+                # Если настроек вообще нет, все уведомления включены по умолчанию
+                new_task_setting = {'telegramPersonal': True, 'telegramGroup': False}
+            
+            # Проверяем, включены ли уведомления о новых задачах (по умолчанию True)
+            if new_task_setting.get('telegramPersonal', True):
+                new_tasks = check_new_tasks(user_id, last_check)
+                logger.info(f"[PERIODIC] Found {len(new_tasks)} new tasks for user {user_id}")
+                
+                for task in new_tasks:
+                    # Проверяем, назначена ли задача на пользователя или создана пользователем
+                    assignee_id = task.get('assigneeId')
+                    assignee_ids = task.get('assigneeIds', [])
+                    created_by = task.get('createdByUserId')
+                    
+                    is_assigned = (assignee_id and str(assignee_id) == str(user_id)) or \
+                                 (isinstance(assignee_ids, list) and user_id in [str(uid) for uid in assignee_ids if uid])
+                    is_created_by = created_by and str(created_by) == str(user_id)
+                    
+                    # Отправляем уведомление если задача назначена на пользователя
+                    if is_assigned:
+                        users = firebase.get_all('users')
+                        projects = firebase.get_all('projects')
+                        assignee_user = next((u for u in users if u.get('id') == assignee_id), None)
+                        assignee_name = assignee_user.get('name', 'Неизвестно') if assignee_user else 'Не назначено'
+                        
+                        # Форматируем сообщение о новой задаче
+                        message = f"🆕 <b>Новая задача</b>\n\n"
+                        message += f"📝 <b>Задача:</b> {task.get('title', 'Без названия')}\n"
+                        message += f"👤 <b>Ответственный:</b> {assignee_name}\n"
+                        if task.get('endDate'):
+                            # Форматируем дату
+                            try:
+                                from datetime import datetime
+                                end_date = task.get('endDate')
+                                if 'T' in end_date:
+                                    end_date = end_date.split('T')[0]
+                                elif ' ' in end_date:
+                                    end_date = end_date.split(' ')[0]
+                                date_obj = datetime.strptime(end_date, '%Y-%m-%d')
+                                message += f"📅 <b>Срок:</b> {date_obj.strftime('%d.%m.%Y')}\n"
+                            except:
+                                message += f"📅 <b>Срок:</b> {task.get('endDate')}\n"
+                        if task.get('priority'):
+                            message += f"⚡ <b>Приоритет:</b> {task.get('priority')}\n"
+                        
+                        keyboard = get_task_menu(task.get('id'))
+                        try:
+                            await context.bot.send_message(
+                                chat_id=telegram_user_id,
+                                text=message,
+                                reply_markup=keyboard,
+                                parse_mode='HTML'
+                            )
+                            logger.info(f"[PERIODIC] Sent new task notification to {telegram_user_id} for task {task.get('id')}")
+                        except Exception as e:
+                            logger.error(f"Error sending task notification: {e}", exc_info=True)
+                    
+                    # Также отправляем уведомление создателю, если он не является исполнителем
+                    elif is_created_by and assignee_id and str(assignee_id) != str(user_id):
+                        users = firebase.get_all('users')
+                        assignee_user = next((u for u in users if u.get('id') == assignee_id), None)
+                        assignee_name = assignee_user.get('name', 'Неизвестно') if assignee_user else 'Не назначено'
+                        
+                        message = f"🆕 <b>Вы создали задачу</b>\n\n"
+                        message += f"📝 <b>Задача:</b> {task.get('title', 'Без названия')}\n"
+                        message += f"👤 <b>Ответственный:</b> {assignee_name}\n"
+                        if task.get('endDate'):
+                            try:
+                                from datetime import datetime
+                                end_date = task.get('endDate')
+                                if 'T' in end_date:
+                                    end_date = end_date.split('T')[0]
+                                elif ' ' in end_date:
+                                    end_date = end_date.split(' ')[0]
+                                date_obj = datetime.strptime(end_date, '%Y-%m-%d')
+                                message += f"📅 <b>Срок:</b> {date_obj.strftime('%d.%m.%Y')}\n"
+                            except:
+                                message += f"📅 <b>Срок:</b> {task.get('endDate')}\n"
+                        
+                        keyboard = get_task_menu(task.get('id'))
+                        try:
+                            await context.bot.send_message(
+                                chat_id=telegram_user_id,
+                                text=message,
+                                reply_markup=keyboard,
+                                parse_mode='HTML'
+                            )
+                            logger.info(f"[PERIODIC] Sent task created notification to {telegram_user_id} for task {task.get('id')}")
+                        except Exception as e:
+                            logger.error(f"Error sending task created notification: {e}", exc_info=True)
+            else:
+                logger.debug(f"[PERIODIC] New task notifications disabled for user {user_id}")
             
             # Обновляем время последней проверки
             session['last_check'] = now
@@ -2140,13 +2266,13 @@ async def periodic_check(context: ContextTypes.DEFAULT_TYPE):
                 logger.debug("Group successful deals notifications are disabled")
     
     except Exception as e:
-        logger.error(f"Error in periodic_check: {e}")
+        logger.error(f"[PERIODIC] Error in periodic_check: {e}", exc_info=True)
 
 def main():
     """Главная функция запуска бота"""
     try:
         # Версия кода для проверки обновлений
-        CODE_VERSION = "2026-01-21-v7"
+        CODE_VERSION = "2026-01-24-refactored"
         
         logger.info("=" * 60)
         logger.info(f"[BOT] ===== STARTING BOT =====")
@@ -2165,15 +2291,28 @@ def main():
     
     # Обработчик ошибок
     async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
-        """Обработчик ошибок"""
-        logger.error(f"[ERROR] Exception while handling an update: {context.error}", exc_info=context.error)
+        """Обработчик ошибок с улучшенным логированием"""
+        error = context.error
+        logger.error(f"[ERROR] Exception while handling an update: {error}", exc_info=error)
+        
+        # Логируем дополнительную информацию
+        if isinstance(update, Update):
+            logger.error(f"[ERROR] Update details: update_id={update.update_id}")
+            if update.effective_user:
+                logger.error(f"[ERROR] User: {update.effective_user.id} (@{update.effective_user.username})")
+            if update.effective_message:
+                logger.error(f"[ERROR] Message: {update.effective_message.text[:100] if update.effective_message.text else 'N/A'}")
+            if update.callback_query:
+                logger.error(f"[ERROR] Callback query: {update.callback_query.data}")
+        
+        # Пытаемся отправить сообщение пользователю
         if isinstance(update, Update) and update.effective_message:
             try:
                 await update.effective_message.reply_text(
-                    "Произошла ошибка при обработке вашего запроса. Попробуйте еще раз."
+                    "❌ Произошла ошибка при обработке вашего запроса. Попробуйте еще раз или используйте /start для перезапуска."
                 )
-            except:
-                pass
+            except Exception as e:
+                logger.error(f"[ERROR] Could not send error message to user: {e}")
     
     # Обработчик всех обновлений для логирования (добавляем ПЕРВЫМ, чтобы видеть все обновления)
     async def log_update(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -2325,9 +2464,9 @@ def main():
     
     logger.info("[BOT] All handlers registered successfully")
     
-    # Периодическая проверка (каждые 30 секунд)
+    # Периодическая проверка (каждые 10 секунд для быстрой доставки уведомлений)
     job_queue = application.job_queue
-    job_queue.run_repeating(periodic_check, interval=30, first=10)
+    job_queue.run_repeating(periodic_check, interval=10, first=5)
     
     # Запускаем планировщик задач
     scheduler = TaskScheduler(application.bot)

@@ -15,27 +15,28 @@ const PublicContentPlanView: React.FC<PublicContentPlanViewProps> = ({ tableId }
   const [currentDate, setCurrentDate] = useState(new Date());
 
   useEffect(() => {
-    // Загружаем данные из localStorage (быстрый старт)
-    const loadData = () => {
-      const allPosts = api.contentPosts.getAll();
-      const allTables = api.tables.getAll();
-      
-      const filteredPosts = allPosts.filter(p => p.tableId === tableId && !p.isArchived);
-      const foundTable = allTables.find(t => t.id === tableId);
-      
-      setPosts(filteredPosts);
-      setTable(foundTable || null);
-      setLoading(false);
+    // Загружаем данные напрямую из Firebase
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const [allPosts, allTables] = await Promise.all([
+          api.contentPosts.getAll(),
+          api.tables.getAll(),
+        ]);
+        
+        const filteredPosts = allPosts.filter(p => p.tableId === tableId && !p.isArchived);
+        const foundTable = allTables.find(t => t.id === tableId);
+        
+        setPosts(filteredPosts);
+        setTable(foundTable || null);
+      } catch (err) {
+        console.error('Ошибка загрузки данных:', err);
+      } finally {
+        setLoading(false);
+      }
     };
     
     loadData();
-    
-    // Синхронизируем с Firestore в фоне
-    api.sync().then(() => {
-      loadData();
-    }).catch(err => {
-      console.error('Ошибка синхронизации:', err);
-    });
   }, [tableId]);
 
   const getPlatformIcon = (p: string) => {

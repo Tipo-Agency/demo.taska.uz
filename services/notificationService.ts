@@ -4,7 +4,8 @@
  */
 
 import { User, NotificationPreferences, Task, Deal, Client, Contract, Doc, Meeting, Role } from '../types';
-import { sendTelegramNotification, getUserTelegramChatId } from './telegramService';
+import { getUserTelegramChatId } from './telegramService';
+import { api } from '../backend/api';
 import {
   createTaskCreatedLog,
   createTaskStatusChangedLog,
@@ -61,41 +62,72 @@ export const notifyTaskCreated = async (
     }
 
     // Telegram уведомление
-    if (!skipTelegram && notificationPrefs?.newTask) {
+    // ВСЕ УВЕДОМЛЕНИЯ БАЗОВО АКТИВНЫ - если настройка не указана, считаем что она включена
+    const newTaskSetting = notificationPrefs?.newTask || { telegramPersonal: true, telegramGroup: false };
+    
+    console.log('[NOTIFICATION] notifyTaskCreated:', {
+      skipTelegram,
+      newTaskSetting,
+      hasAssignee: !!assigneeUser,
+      assigneeId: assigneeUser?.id,
+      assigneeTelegramUserId: assigneeUser?.telegramUserId,
+      creatorId: task.createdByUserId || currentUser?.id,
+      hasNotificationPrefs: !!notificationPrefs
+    });
+    
+    // Отправляем уведомления через очередь бота (токен берется из .env на сервере)
+    if (!skipTelegram && newTaskSetting.telegramPersonal !== false) {
       const assigneeName = assigneeUser ? assigneeUser.name : 'Не назначено';
+      const message = formatNewTaskMessage(task.title, task.priority, task.endDate, assigneeName, null);
       
-      // Отправляем уведомление исполнителю (если назначен)
+      // Добавляем задачу в очередь для исполнителя (если назначен)
       if (assigneeUser) {
         const assigneeTelegramChatId = getUserTelegramChatId(assigneeUser);
         if (assigneeTelegramChatId) {
-          await sendTelegramNotification(
-            formatNewTaskMessage(task.title, task.priority, task.endDate, assigneeName, null),
-            undefined,
-            notificationPrefs.newTask,
-            assigneeTelegramChatId,
-            notificationPrefs.telegramGroupChatId
-          );
+          try {
+            await api.notificationQueue.add({
+              type: 'taskCreated',
+              userId: assigneeUser.id,
+              message,
+              chatId: assigneeTelegramChatId,
+              metadata: { taskId: task.id, taskTitle: task.title }
+            });
+            console.log('[NOTIFICATION] Task notification queued for assignee:', assigneeUser.id);
+          } catch (error) {
+            console.error('[NOTIFICATION] Error queueing notification for assignee:', error);
+          }
         } else {
-          console.warn('[NOTIFICATION] Assignee has no telegramUserId:', assigneeUser.id);
+          console.warn('[NOTIFICATION] Assignee has no telegramUserId - user needs to login to bot:', {
+            assigneeId: assigneeUser.id,
+            assigneeName: assigneeUser.name
+          });
         }
       }
       
-      // Также отправляем уведомление создателю, если он не является исполнителем
+      // Также добавляем задачу для создателя, если он не является исполнителем
       const creatorId = task.createdByUserId || currentUser?.id;
       if (creatorId && (!assigneeUser || assigneeUser.id !== creatorId)) {
         const creatorUser = allUsers.find(u => u.id === creatorId);
         if (creatorUser) {
           const creatorTelegramChatId = getUserTelegramChatId(creatorUser);
           if (creatorTelegramChatId) {
-            await sendTelegramNotification(
-              formatNewTaskMessage(task.title, task.priority, task.endDate, assigneeName, null),
-              undefined,
-              notificationPrefs.newTask,
-              creatorTelegramChatId,
-              notificationPrefs.telegramGroupChatId
-            );
+            try {
+              await api.notificationQueue.add({
+                type: 'taskCreated',
+                userId: creatorId,
+                message,
+                chatId: creatorTelegramChatId,
+                metadata: { taskId: task.id, taskTitle: task.title }
+              });
+              console.log('[NOTIFICATION] Task notification queued for creator:', creatorId);
+            } catch (error) {
+              console.error('[NOTIFICATION] Error queueing notification for creator:', error);
+            }
           } else {
-            console.warn('[NOTIFICATION] Creator has no telegramUserId:', creatorId);
+            console.warn('[NOTIFICATION] Creator has no telegramUserId - user needs to login to bot:', {
+              creatorId,
+              creatorName: creatorUser.name
+            });
           }
         }
       }
@@ -124,16 +156,23 @@ export const notifyTaskStatusChanged = async (
       await createTaskStatusChangedLog(task, oldStatus, newStatus, currentUser, assigneeUser, allUsers);
     }
 
-    // Telegram уведомление
-    if (!skipTelegram && notificationPrefs?.statusChange) {
+    // Отправляем уведомление через очередь бота
+    const statusChangeSetting = notificationPrefs?.statusChange || { telegramPersonal: true, telegramGroup: false };
+    if (!skipTelegram && statusChangeSetting.telegramPersonal !== false && assigneeUser) {
       const userTelegramChatId = getUserTelegramChatId(assigneeUser);
-      await sendTelegramNotification(
-        formatStatusChangeMessage(task.title, oldStatus, newStatus, currentUser.name),
-        undefined,
-        notificationPrefs.statusChange,
-        userTelegramChatId,
-        notificationPrefs.telegramGroupChatId
-      );
+      if (userTelegramChatId) {
+        try {
+          await api.notificationQueue.add({
+            type: 'taskStatusChanged',
+            userId: assigneeUser.id,
+            message: formatStatusChangeMessage(task.title, oldStatus, newStatus, currentUser.name),
+            chatId: userTelegramChatId,
+            metadata: { taskId: task.id, oldStatus, newStatus }
+          });
+        } catch (error) {
+          console.error('[NOTIFICATION] Error queueing status change notification:', error);
+        }
+      }
     }
   } catch (error) {
     console.error('[NOTIFICATION] Error notifying task status changed:', error);
@@ -157,19 +196,26 @@ export const notifyDealCreated = async (
       await createDealCreatedLog(deal, currentUser, assigneeUser, allUsers);
     }
 
-    // Telegram уведомление
-    if (!skipTelegram && notificationPrefs?.dealCreated) {
+    // Отправляем уведомления через очередь бота
+    const dealCreatedSetting = notificationPrefs?.dealCreated || { telegramPersonal: true, telegramGroup: false };
+    if (!skipTelegram && dealCreatedSetting.telegramPersonal !== false) {
+      const dealMessage = formatDealMessage(deal.title, deal.stage, deal.amount || 0, assigneeUser?.name || 'Не назначено');
+      
       // Отправляем уведомление ответственному (если назначен)
       if (assigneeUser) {
         const userTelegramChatId = getUserTelegramChatId(assigneeUser);
         if (userTelegramChatId) {
-          await sendTelegramNotification(
-            formatDealMessage(deal.title, deal.stage, deal.amount, assigneeUser.name || 'Не назначено'),
-            undefined,
-            notificationPrefs.dealCreated,
-            userTelegramChatId,
-            notificationPrefs.telegramGroupChatId
-          );
+          try {
+            await api.notificationQueue.add({
+              type: 'dealCreated',
+              userId: assigneeUser.id,
+              message: dealMessage,
+              chatId: userTelegramChatId,
+              metadata: { dealId: deal.id, dealTitle: deal.title }
+            });
+          } catch (error) {
+            console.error('[NOTIFICATION] Error queueing deal notification for assignee:', error);
+          }
         }
       }
       
@@ -177,16 +223,17 @@ export const notifyDealCreated = async (
       const adminUsers = allUsers.filter(user => user.role === 'ADMIN' && !user.isArchived);
       for (const admin of adminUsers) {
         const adminTelegramChatId = getUserTelegramChatId(admin);
-        if (adminTelegramChatId && notificationPrefs.dealCreated.telegramPersonal) {
-          // Отправляем только если администратор не является ответственным
-          if (!assigneeUser || admin.id !== assigneeUser.id) {
-            await sendTelegramNotification(
-              `🆕 <b>Новая заявка</b>\n\n<b>Название:</b> ${deal.title}\n<b>Стадия:</b> ${deal.stage}\n<b>Сумма:</b> ${deal.amount?.toLocaleString() || 0} ${deal.currency || 'UZS'}\n<b>Создал:</b> ${currentUser?.name || 'Неизвестно'}\n<b>Ответственный:</b> ${assigneeUser?.name || 'Не назначено'}`,
-              undefined,
-              notificationPrefs.dealCreated,
-              adminTelegramChatId,
-              notificationPrefs.telegramGroupChatId
-            );
+        if (adminTelegramChatId && (!assigneeUser || admin.id !== assigneeUser.id)) {
+          try {
+            await api.notificationQueue.add({
+              type: 'dealCreated',
+              userId: admin.id,
+              message: `🆕 <b>Новая заявка</b>\n\n<b>Название:</b> ${deal.title}\n<b>Стадия:</b> ${deal.stage}\n<b>Сумма:</b> ${deal.amount?.toLocaleString() || 0} ${deal.currency || 'UZS'}\n<b>Создал:</b> ${currentUser?.name || 'Неизвестно'}\n<b>Ответственный:</b> ${assigneeUser?.name || 'Не назначено'}`,
+              chatId: adminTelegramChatId,
+              metadata: { dealId: deal.id, dealTitle: deal.title, isAdmin: true }
+            });
+          } catch (error) {
+            console.error('[NOTIFICATION] Error queueing deal notification for admin:', error);
           }
         }
       }
@@ -214,15 +261,27 @@ export const notifyDealStatusChanged = async (
       await createDealStatusChangedLog(deal, oldStage, newStage, currentUser, allUsers);
     }
 
-    // Telegram уведомление
-    if (!skipTelegram && notificationPrefs?.dealStatusChanged) {
-      await sendTelegramNotification(
-        formatDealStatusChangeMessage(deal.title, oldStage, newStage, currentUser.name),
-        undefined,
-        notificationPrefs.dealStatusChanged,
-        undefined,
-        notificationPrefs.telegramGroupChatId
-      );
+    // Отправляем уведомление через очередь бота (если есть ответственный)
+    const dealStatusChangedSetting = notificationPrefs?.dealStatusChanged || { telegramPersonal: true, telegramGroup: false };
+    if (!skipTelegram && dealStatusChangedSetting.telegramPersonal !== false) {
+      // Находим ответственного по сделке
+      const assigneeUser = deal.assigneeId ? allUsers.find(u => u.id === deal.assigneeId) : null;
+      if (assigneeUser) {
+        const userTelegramChatId = getUserTelegramChatId(assigneeUser);
+        if (userTelegramChatId) {
+          try {
+            await api.notificationQueue.add({
+              type: 'dealStatusChanged',
+              userId: assigneeUser.id,
+              message: formatDealStatusChangeMessage(deal.title, oldStage, newStage, currentUser.name),
+              chatId: userTelegramChatId,
+              metadata: { dealId: deal.id, oldStage, newStage }
+            });
+          } catch (error) {
+            console.error('[NOTIFICATION] Error queueing deal status change notification:', error);
+          }
+        }
+      }
     }
   } catch (error) {
     console.error('[NOTIFICATION] Error notifying deal status changed:', error);
@@ -245,16 +304,8 @@ export const notifyClientCreated = async (
       await createClientCreatedLog(client, currentUser, allUsers);
     }
 
-    // Telegram уведомление
-    if (!skipTelegram && notificationPrefs?.clientCreated) {
-      await sendTelegramNotification(
-        formatClientMessage(client.name, currentUser.name),
-        undefined,
-        notificationPrefs.clientCreated,
-        undefined,
-        notificationPrefs.telegramGroupChatId
-      );
-    }
+    // Уведомления о клиентах обычно не требуют персональных уведомлений
+    // Можно добавить в очередь для администраторов, если нужно
   } catch (error) {
     console.error('[NOTIFICATION] Error notifying client created:', error);
   }
@@ -277,16 +328,8 @@ export const notifyContractCreated = async (
       await createContractCreatedLog(contract, currentUser, allUsers);
     }
 
-    // Telegram уведомление
-    if (!skipTelegram && notificationPrefs?.contractCreated) {
-      await sendTelegramNotification(
-        formatContractMessage(contract.number || 'Без номера', clientName, contract.amount, currentUser.name),
-        undefined,
-        notificationPrefs.contractCreated,
-        undefined,
-        notificationPrefs.telegramGroupChatId
-      );
-    }
+    // Уведомления о договорах обычно не требуют персональных уведомлений
+    // Можно добавить в очередь для администраторов, если нужно
   } catch (error) {
     console.error('[NOTIFICATION] Error notifying contract created:', error);
   }
@@ -308,16 +351,8 @@ export const notifyDocCreated = async (
       await createDocCreatedLog(doc, currentUser, allUsers);
     }
 
-    // Telegram уведомление
-    if (!skipTelegram && notificationPrefs?.docCreated) {
-      await sendTelegramNotification(
-        formatDocumentMessage(doc.title, currentUser.name),
-        undefined,
-        notificationPrefs.docCreated,
-        undefined,
-        notificationPrefs.telegramGroupChatId
-      );
-    }
+    // Уведомления о документах обычно не требуют персональных уведомлений
+    // Можно добавить в очередь для администраторов, если нужно
   } catch (error) {
     console.error('[NOTIFICATION] Error notifying doc created:', error);
   }
@@ -340,15 +375,31 @@ export const notifyMeetingCreated = async (
       await createMeetingCreatedLog(meeting, currentUser, participantIds, allUsers);
     }
 
-    // Telegram уведомление
-    if (!skipTelegram && notificationPrefs?.meetingCreated) {
-      await sendTelegramNotification(
-        formatMeetingMessage(meeting.title, meeting.date, meeting.time, currentUser.name),
-        undefined,
-        notificationPrefs.meetingCreated,
-        undefined,
-        notificationPrefs.telegramGroupChatId
-      );
+    // Отправляем уведомления участникам встречи через очередь
+    const meetingCreatedSetting = notificationPrefs?.meetingCreated || { telegramPersonal: true, telegramGroup: false };
+    if (!skipTelegram && meetingCreatedSetting.telegramPersonal !== false) {
+      const message = formatMeetingMessage(meeting.title, meeting.date, meeting.time, currentUser.name);
+      
+      // Отправляем уведомление всем участникам
+      for (const participantId of participantIds) {
+        const participant = allUsers.find(u => u.id === participantId);
+        if (participant) {
+          const participantTelegramChatId = getUserTelegramChatId(participant);
+          if (participantTelegramChatId) {
+            try {
+              await api.notificationQueue.add({
+                type: 'meetingCreated',
+                userId: participantId,
+                message,
+                chatId: participantTelegramChatId,
+                metadata: { meetingId: meeting.id, meetingTitle: meeting.title }
+              });
+            } catch (error) {
+              console.error('[NOTIFICATION] Error queueing meeting notification:', error);
+            }
+          }
+        }
+      }
     }
   } catch (error) {
     console.error('[NOTIFICATION] Error notifying meeting created:', error);
@@ -372,20 +423,34 @@ export const notifyPurchaseRequestCreated = async (
       await createPurchaseRequestCreatedLog(request, currentUser, allUsers);
     }
 
-    // Telegram уведомление
-    if (!skipTelegram && notificationPrefs?.purchaseRequestCreated) {
-      await sendTelegramNotification(
-        formatPurchaseRequestMessage(
-          request.title || request.description || 'Заявка',
-          request.amount || 0,
-          departmentName,
-          currentUser.name
-        ),
-        undefined,
-        notificationPrefs.purchaseRequestCreated,
-        undefined,
-        notificationPrefs.telegramGroupChatId
+    // Уведомления о заявках на покупку обычно отправляются администраторам
+    const purchaseRequestCreatedSetting = notificationPrefs?.purchaseRequestCreated || { telegramPersonal: true, telegramGroup: false };
+    if (!skipTelegram && purchaseRequestCreatedSetting.telegramPersonal !== false) {
+      const message = formatPurchaseRequestMessage(
+        request.title || request.description || 'Заявка',
+        request.amount || 0,
+        departmentName,
+        currentUser.name
       );
+      
+      // Отправляем уведомление администраторам
+      const adminUsers = allUsers.filter(user => user.role === 'ADMIN' && !user.isArchived);
+      for (const admin of adminUsers) {
+        const adminTelegramChatId = getUserTelegramChatId(admin);
+        if (adminTelegramChatId) {
+          try {
+            await api.notificationQueue.add({
+              type: 'purchaseRequestCreated',
+              userId: admin.id,
+              message,
+              chatId: adminTelegramChatId,
+              metadata: { requestId: request.id }
+            });
+          } catch (error) {
+            console.error('[NOTIFICATION] Error queueing purchase request notification:', error);
+          }
+        }
+      }
     }
   } catch (error) {
     console.error('[NOTIFICATION] Error notifying purchase request created:', error);

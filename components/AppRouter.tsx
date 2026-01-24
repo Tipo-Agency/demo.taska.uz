@@ -10,12 +10,14 @@ import {
 } from '../types';
 
 import HomeView from './HomeView';
+import { HomePage } from './pages/HomePage';
 import InboxView from './InboxView';
 import SettingsView from './SettingsView';
 import AnalyticsView from './AnalyticsView';
 import DocEditor from './DocEditor';
 import TableView from './TableView'; // Needed for Global Search
 import { TasksView } from './TasksView';
+import { TasksPage } from './pages/TasksPage';
 import { SpacesTabsView } from './SpacesTabsView';
 import { SpaceModule } from './modules/SpaceModule';
 import { CRMModule } from './modules/CRMModule';
@@ -89,54 +91,56 @@ export const AppRouter: React.FC<AppRouterProps> = (props) => {
   // 1. Global / Core Views
   if (view === 'home') {
       return (
-          <div className="h-full w-full overflow-auto bg-white dark:bg-[#191919]">
-          <HomeView 
-              currentUser={props.currentUser} 
-              tasks={props.filteredTasks} 
-              recentActivity={props.activities} 
+          <HomePage
+              currentUser={props.currentUser}
+              tasks={props.filteredTasks}
+              recentActivity={props.activities}
               meetings={props.meetings}
               financePlan={props.financePlan}
               purchaseRequests={props.purchaseRequests}
               deals={props.deals}
               contentPosts={props.contentPosts}
               employeeInfos={props.employeeInfos}
+              users={props.users}
+              projects={props.projects}
+              statuses={props.statuses}
+              priorities={props.priorities}
               onOpenTask={actions.openTaskModal}
               onNavigateToInbox={() => actions.setCurrentView('inbox')}
               onQuickCreateTask={() => actions.openTaskModal(null)}
-              onQuickCreateProcess={() => { 
-                actions.setCurrentView('business-processes'); 
-                // Открываем модалку через небольшую задержку, чтобы компонент успел смонтироваться
+              onQuickCreateProcess={() => {
+                actions.setCurrentView('business-processes');
                 setTimeout(() => {
                   const event = new CustomEvent('openCreateProcessModal');
                   window.dispatchEvent(event);
                 }, 100);
               }}
-              onQuickCreateDeal={() => { 
-                actions.setCurrentView('sales-funnel'); 
-                // Открываем модалку через небольшую задержку, чтобы компонент успел смонтироваться
+              onQuickCreateDeal={() => {
+                actions.setCurrentView('sales-funnel');
                 setTimeout(() => {
                   const event = new CustomEvent('openCreateDealModal');
                   window.dispatchEvent(event);
                 }, 100);
               }}
+              onNavigateToTasks={() => actions.setCurrentView('tasks')}
+              onNavigateToMeetings={() => actions.setCurrentView('meetings')}
           />
-          </div>
       );
   }
 
   if (view === 'tasks') {
       return (
-          <TasksView 
-              tasks={props.allTasks} 
-              users={props.users} 
-              projects={props.projects} 
-              statuses={props.statuses} 
-              priorities={props.priorities} 
-              tables={props.tables} 
-              businessProcesses={props.businessProcesses} 
-              currentUser={props.currentUser} 
-              onUpdateTask={(id, updates) => actions.saveTask({ id, ...updates })} 
-              onDeleteTask={actions.deleteTask} 
+          <TasksPage
+              tasks={props.allTasks}
+              users={props.users}
+              projects={props.projects}
+              statuses={props.statuses}
+              priorities={props.priorities}
+              tables={props.tables}
+              businessProcesses={props.businessProcesses}
+              currentUser={props.currentUser}
+              onUpdateTask={(id, updates) => actions.saveTask({ id, ...updates })}
+              onDeleteTask={actions.deleteTask}
               onOpenTask={actions.openTaskModal}
               onCreateTask={() => actions.openTaskModal(null)}
           />
@@ -163,7 +167,7 @@ export const AppRouter: React.FC<AppRouterProps> = (props) => {
   }
 
   if (view === 'inbox') {
-      return <InboxView activities={props.activities} onMarkAllRead={actions.markAllRead} />;
+      return <InboxPage activities={props.activities} users={props.users} onMarkAllRead={actions.markAllRead} />;
   }
 
   if (view === 'settings') {
@@ -234,7 +238,27 @@ export const AppRouter: React.FC<AppRouterProps> = (props) => {
                         />;
   }
 
-  if (view === 'sales-funnel' || view === 'clients') {
+  if (view === 'clients') {
+      return (
+          <ClientsPage
+              clients={props.clients}
+              contracts={props.contracts}
+              oneTimeDeals={props.oneTimeDeals}
+              accountsReceivable={props.accountsReceivable}
+              salesFunnels={props.salesFunnels}
+              onSaveClient={actions.saveClient}
+              onDeleteClient={actions.deleteClient}
+              onSaveContract={actions.saveContract}
+              onDeleteContract={actions.deleteContract}
+              onSaveOneTimeDeal={actions.saveOneTimeDeal}
+              onDeleteOneTimeDeal={actions.deleteOneTimeDeal}
+              onSaveAccountsReceivable={actions.saveAccountsReceivable}
+              onDeleteAccountsReceivable={actions.deleteAccountsReceivable}
+          />
+      );
+  }
+
+  if (view === 'sales-funnel') {
       return <CRMModule view={view} deals={props.deals} clients={props.clients} contracts={props.contracts} oneTimeDeals={props.oneTimeDeals} accountsReceivable={props.accountsReceivable} users={props.users} salesFunnels={props.salesFunnels} projects={props.projects} tasks={props.allTasks} currentUser={props.currentUser} actions={actions} />;
   }
 
@@ -304,21 +328,39 @@ export const AppRouter: React.FC<AppRouterProps> = (props) => {
 
   // Fallback: если ничего не подошло, показываем home
   return (
-      <HomeView 
-          currentUser={props.currentUser} 
-          tasks={props.filteredTasks} 
-          recentActivity={props.activities} 
+      <HomePage
+          currentUser={props.currentUser}
+          tasks={props.filteredTasks}
+          recentActivity={props.activities}
           meetings={props.meetings}
           financePlan={props.financePlan}
           purchaseRequests={props.purchaseRequests}
           deals={props.deals}
           contentPosts={props.contentPosts}
           employeeInfos={props.employeeInfos}
+          users={props.users}
+          projects={props.projects}
+          statuses={props.statuses}
+          priorities={props.priorities}
           onOpenTask={actions.openTaskModal}
           onNavigateToInbox={() => actions.setCurrentView('inbox')}
           onQuickCreateTask={() => actions.openTaskModal(null)}
-          onQuickCreateProcess={() => { actions.setCurrentView('business-processes'); }}
-          onQuickCreateDeal={() => { actions.setCurrentView('sales-funnel'); }}
+          onQuickCreateProcess={() => {
+            actions.setCurrentView('business-processes');
+            setTimeout(() => {
+              const event = new CustomEvent('openCreateProcessModal');
+              window.dispatchEvent(event);
+            }, 100);
+          }}
+          onQuickCreateDeal={() => {
+            actions.setCurrentView('sales-funnel');
+            setTimeout(() => {
+              const event = new CustomEvent('openCreateDealModal');
+              window.dispatchEvent(event);
+            }, 100);
+          }}
+          onNavigateToTasks={() => actions.setCurrentView('tasks')}
+          onNavigateToMeetings={() => actions.setCurrentView('meetings')}
       />
   );
 };

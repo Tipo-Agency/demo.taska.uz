@@ -20,20 +20,38 @@ def check_new_tasks(user_id: str, last_check_time: datetime) -> List[Dict[str, A
             if task.get('isArchived'):
                 continue
             
-            # Проверяем, назначена ли задача на пользователя
-            if task.get('assigneeId') == user_id or user_id in task.get('assigneeIds', []):
-                created_at = task.get('createdAt')
-                if created_at:
-                    try:
-                        task_time = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
-                        if task_time > last_check_time:
-                            new_tasks.append(task)
-                    except:
-                        pass
+            created_at = task.get('createdAt')
+            if not created_at:
+                continue
+            
+            try:
+                task_time = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                
+                # Проверяем, новая ли задача (создана после last_check_time)
+                if task_time <= last_check_time:
+                    continue
+                
+                # Проверяем, назначена ли задача на пользователя ИЛИ создана пользователем
+                assignee_id = task.get('assigneeId')
+                assignee_ids = task.get('assigneeIds', [])
+                created_by = task.get('createdByUserId')
+                
+                is_assigned = (assignee_id and str(assignee_id) == str(user_id)) or \
+                             (isinstance(assignee_ids, list) and user_id in [str(uid) for uid in assignee_ids if uid])
+                is_created_by = created_by and str(created_by) == str(user_id)
+                
+                # Добавляем задачу если она назначена на пользователя ИЛИ создана пользователем
+                if is_assigned or is_created_by:
+                    new_tasks.append(task)
+            except Exception as date_error:
+                print(f"Error parsing task date: {date_error}")
+                continue
         
         return new_tasks
     except Exception as e:
         print(f"Error checking new tasks: {e}")
+        import traceback
+        traceback.print_exc()
         return []
 
 def check_new_deals(user_id: str, last_check_time: datetime) -> List[Dict[str, Any]]:

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import { AppRouter } from './components/AppRouter';
 import { LoginView } from './components/LoginView';
+import { LoginPage } from './components/pages/LoginPage';
 import { AppHeader } from './components/AppHeader';
 import TaskModal from './components/TaskModal';
 import IdeaModal from './components/IdeaModal';
@@ -72,7 +73,7 @@ const App = () => {
   if (state.isLoading || !firebaseAuthReady) return <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-[#121212] dark:text-white">Загрузка...</div>;
 
   if (!state.currentUser) {
-      return <LoginView users={state.users} onLogin={actions.login} />;
+      return <LoginPage users={state.users} onLogin={actions.login} />;
   }
 
   const unreadNotifications = state.activityLogs.filter(a => !a.read);
@@ -89,14 +90,14 @@ const App = () => {
   return (
     <div 
       className={`flex h-screen w-full transition-colors duration-200 overflow-hidden ${state.darkMode ? 'dark bg-[#191919] text-gray-100' : 'bg-white text-gray-900'}`}
-      style={isTelegramWebApp ? {
-        paddingTop: 'max(env(safe-area-inset-top, 0px), 0px)',
+      style={{
         height: '100vh',
         maxHeight: '100vh',
-        overflow: 'hidden'
-      } : {
-        height: '100vh',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        paddingTop: isTelegramWebApp ? 'env(safe-area-inset-top, 0px)' : '0px',
+        paddingBottom: isTelegramWebApp ? 'env(safe-area-inset-bottom, 0px)' : '0px',
+        paddingLeft: isTelegramWebApp ? 'env(safe-area-inset-left, 0px)' : '0px',
+        paddingRight: isTelegramWebApp ? 'env(safe-area-inset-right, 0px)' : '0px',
       }}
     >
         {/* Sidebar */}

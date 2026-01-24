@@ -16,12 +16,20 @@ const sendTelegramMessage = async (message: string, targetChatId: string, button
   // На сервере токен берется из .env (через GitHub Secrets)
   const botToken = storageService.getEmployeeBotToken();
   
+  console.log('[TELEGRAM] sendTelegramMessage called:', {
+    hasToken: !!botToken,
+    tokenLength: botToken?.length || 0,
+    hasChatId: !!targetChatId,
+    chatId: targetChatId
+  });
+  
   if (!targetChatId || !botToken) {
-    console.warn('[TELEGRAM] Не настроен bot token или chat ID:', { 
+    console.error('[TELEGRAM] ❌ Не настроен bot token или chat ID:', { 
       hasToken: !!botToken, 
-      hasChatId: !!targetChatId 
+      hasChatId: !!targetChatId,
+      tokenLength: botToken?.length || 0
     });
-    console.warn('[TELEGRAM] Установите токен бота в настройках системы');
+    console.error('[TELEGRAM] Установите токен бота в настройках системы (Настройки → Интеграции → Telegram Bot Token)');
     return false;
   }
 
@@ -98,16 +106,18 @@ export const sendTelegramNotification = async (
 
   let sent = false;
 
-  // Отправляем в личный чат, если включено
-  if (notificationSetting.telegramPersonal && userTelegramChatId) {
+  // Отправляем в личный чат, если включено (по умолчанию включено, если не выключено явно)
+  // ВСЕ УВЕДОМЛЕНИЯ БАЗОВО АКТИВНЫ - если telegramPersonal !== false, отправляем
+  if (notificationSetting.telegramPersonal !== false && userTelegramChatId) {
     console.log('[TELEGRAM] Sending personal notification to:', userTelegramChatId);
     sent = await sendTelegramMessage(message, userTelegramChatId, buttons) || sent;
   } else {
-    if (!notificationSetting.telegramPersonal) {
+    if (notificationSetting.telegramPersonal === false) {
       console.log('[TELEGRAM] Personal notifications disabled');
     }
     if (!userTelegramChatId) {
-      console.warn('[TELEGRAM] No userTelegramChatId provided');
+      console.warn('[TELEGRAM] No userTelegramChatId provided - user may not be authorized in bot');
+      console.warn('[TELEGRAM] User needs to login to bot using /start command');
     }
   }
 
@@ -183,7 +193,9 @@ export const pollTelegramUpdates = async (): Promise<{ newDeals: Deal[], newMess
 
         if (data.ok && data.result.length > 0) {
             let lastUpdateId = offset - 1;
-            const existingDeals = storageService.getDeals(); // Get current deals to check existence
+            // ВАЖНО: Данные теперь загружаются только из Firebase через api
+            // Используем api.deals.getAll() вместо storageService.getDeals()
+            const existingDeals = await api.deals.getAll(); // Get current deals from Firebase
 
             for (const update of data.result) {
                 lastUpdateId = update.update_id;

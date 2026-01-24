@@ -1,27 +1,27 @@
-# Архитектура "Только Облако" vs "LocalStorage + Синхронизация"
+# Архитектура "Только Облако" (Firebase как единственный источник истины)
 
-## Текущая архитектура (LocalStorage + Firebase синхронизация)
+## ✅ ТЕКУЩАЯ АРХИТЕКТУРА (Firebase - единственный источник истины)
 
-### Как работает сейчас:
+### Как работает СЕЙЧАС:
 
 1. **Хранилище данных:**
-   - Данные хранятся в `localStorage` (браузер)
-   - Firebase используется для синхронизации между устройствами
-   - При загрузке: сначала читаем из localStorage, потом синхронизируем с Firebase
-   - При сохранении: сначала в localStorage, потом в Firebase
+   - ✅ Данные хранятся **ТОЛЬКО в Firebase**
+   - ✅ localStorage используется **ТОЛЬКО** для настроек сессии (activeUserId, tokens, darkMode)
+   - ✅ При загрузке: читаем напрямую из Firebase через `api.*.getAll()`
+   - ✅ При сохранении: сохраняем напрямую в Firebase через `api.*.create()`, `api.*.update()`, `api.*.delete()`
 
-2. **Процесс синхронизации:**
+2. **Процесс работы:**
    ```
-   Пользователь сохраняет → localStorage → Firebase (каждые 5 сек)
-   Пользователь загружает → localStorage → проверка Firebase → обновление localStorage
+   Пользователь загружает → api.*.getAll() → Firebase → React State
+   Пользователь сохраняет → api.*.create/update/delete() → Firebase → api.*.getAll() → React State
    ```
 
-3. **Проблемы:**
-   - Два источника данных (localStorage и Firebase) - возможны рассинхронизации
-   - Сложная логика синхронизации (когда загружать, когда сохранять)
-   - Проблемы с архивными элементами (возвращаются после обновления)
-   - Сложный код с множеством проверок и условий
-   - Нужно сравнивать данные из localStorage и Firebase
+3. **Преимущества:**
+   - ✅ Один источник истины (Firebase)
+   - ✅ Нет проблем с синхронизацией
+   - ✅ Проще код (нет сложной логики синхронизации)
+   - ✅ Данные всегда актуальные
+   - ✅ Легче отлаживать
 
 ---
 
@@ -90,32 +90,27 @@ getAll: async (): Promise<SalesFunnel[]> => {
 
 ### 2. Загрузка данных при старте приложения
 
-**Было:**
+**Реализовано:**
 ```typescript
-const loadBaseData = () => {
-    setSalesFunnels(api.funnels.getAll()); // Синхронно из localStorage
-}
-```
-
-**Стало:**
-```typescript
-const loadBaseData = async () => {
-    const funnels = await api.funnels.getAll(); // Асинхронно из Firebase
+const loadMainData = async () => {
+    const [tables, activityLogs, notificationPrefs, automationRules, statuses, priorities, funnels] = await Promise.all([
+        api.tables.getAll(),
+        api.activity.getAll(),
+        api.notificationPrefs.get(),
+        api.automation.getRules(),
+        api.statuses.getAll(),
+        api.priorities.getAll(),
+        api.funnels.getAll(),
+    ]);
+    // Устанавливаем в состояние
     setSalesFunnels(funnels);
+    // ...
 }
 ```
 
 ### 3. Сохранение данных
 
-**Было:**
-```typescript
-saveSalesFunnel: (funnel: SalesFunnel) => {
-    api.funnels.create(funnel); // Сохраняем в localStorage + Firebase
-    setSalesFunnels(api.funnels.getAll()); // Обновляем из localStorage
-}
-```
-
-**Стало:**
+**Реализовано:**
 ```typescript
 saveSalesFunnel: async (funnel: SalesFunnel) => {
     await api.funnels.create(funnel); // Сохраняем в Firebase
@@ -126,19 +121,10 @@ saveSalesFunnel: async (funnel: SalesFunnel) => {
 
 ### 4. Удаление данных
 
-**Было:**
-```typescript
-deleteSalesFunnel: createDeleteHandler(
-    setSalesFunnels,
-    (funnels) => api.funnels.updateAll(funnels), // Сохраняем массив без удаленного
-    ...
-)
-```
-
-**Стало:**
+**Реализовано:**
 ```typescript
 deleteSalesFunnel: async (id: string) => {
-    await api.funnels.delete(id); // Удаляем из Firebase
+    await api.funnels.delete(id); // Удаляем из Firebase (мягкое удаление)
     const funnels = await api.funnels.getAll(); // Загружаем обновленный список
     setSalesFunnels(funnels); // Обновляем состояние
 }

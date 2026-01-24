@@ -36,11 +36,11 @@ export const Button: React.FC<ButtonProps> = ({
     outline: 'border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-[#252525] text-gray-700 dark:text-gray-300 focus:ring-gray-500'
   };
   
-  const sizeClasses = {
-    sm: 'px-3 py-1.5 text-sm gap-1.5',
-    md: 'px-4 py-2 text-sm gap-2',
-    lg: 'px-6 py-3 text-base gap-2'
-  };
+      const sizeClasses = {
+        sm: 'px-3 py-2 text-sm gap-1.5 min-h-[44px]', // min-h-[44px] для touch-friendly
+        md: 'px-4 py-2.5 text-sm gap-2 min-h-[44px]', // min-h-[44px] для touch-friendly
+        lg: 'px-6 py-3 text-base gap-2 min-h-[48px]' // min-h-[48px] для больших кнопок
+      };
   
   const iconSize = {
     sm: 14,

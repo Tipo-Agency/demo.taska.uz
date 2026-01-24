@@ -7,7 +7,17 @@ import { firestoreService } from "./firestoreService";
 // Флаг для отслеживания последнего сохранения (чтобы не перезаписывать свежие данные)
 let lastSaveTime = 0;
 const SAVE_COOLDOWN = 5000; // 5 секунд - минимальная задержка между сохранением и синхронизацией
-let isSaving = false; // Флаг, что идет процесс сохранения
+/**
+ * @deprecated ВАЖНО: Данные приложения теперь хранятся ТОЛЬКО в Firebase
+ * 
+ * localStorage используется ТОЛЬКО для настроек сессии:
+ * - activeUserId, telegramChatId, tokens, darkMode и т.д.
+ * 
+ * Все методы get/set для данных приложения (tasks, deals, clients) помечены как @deprecated
+ * Используйте api.*.getAll() для загрузки данных из Firebase
+ */
+
+let isSaving = false; // @deprecated - больше не используется
 
 const STORAGE_KEYS = {
   USERS: 'cfo_users',
@@ -113,24 +123,65 @@ export const storageService = {
   getLastTelegramUpdateId: (): number => getLocal(STORAGE_KEYS.LAST_TELEGRAM_UPDATE_ID, 0),
   setLastTelegramUpdateId: (id: number) => setLocal(STORAGE_KEYS.LAST_TELEGRAM_UPDATE_ID, id),
 
-  // Inventory Local Accessors
+  // Inventory Local Accessors - @deprecated
+  /**
+   * @deprecated Используйте api.inventory.getWarehouses() для загрузки из Firebase
+   */
   getWarehouses: (): Warehouse[] => getLocal(STORAGE_KEYS.WAREHOUSES, []),
-  setWarehouses: (warehouses: Warehouse[]) => { setLocal(STORAGE_KEYS.WAREHOUSES, warehouses); storageService.saveToCloud(); },
+  /**
+   * @deprecated Используйте api.inventory.updateWarehouses() для сохранения в Firebase
+   */
+  setWarehouses: (warehouses: Warehouse[]) => {
+      console.warn('[DEPRECATED] storageService.setWarehouses() is deprecated. Use api.inventory.updateWarehouses() instead.');
+      setLocal(STORAGE_KEYS.WAREHOUSES, warehouses);
+  },
+  /**
+   * @deprecated Используйте api.inventory.getItems() для загрузки из Firebase
+   */
   getInventoryItems: (): InventoryItem[] => getLocal(STORAGE_KEYS.INVENTORY_ITEMS, []),
-  setInventoryItems: (items: InventoryItem[]) => { setLocal(STORAGE_KEYS.INVENTORY_ITEMS, items); storageService.saveToCloud(); },
+  /**
+   * @deprecated Используйте api.inventory.updateItems() для сохранения в Firebase
+   */
+  setInventoryItems: (items: InventoryItem[]) => {
+      console.warn('[DEPRECATED] storageService.setInventoryItems() is deprecated. Use api.inventory.updateItems() instead.');
+      setLocal(STORAGE_KEYS.INVENTORY_ITEMS, items);
+  },
+  /**
+   * @deprecated Используйте api.inventory.getMovements() для загрузки из Firebase
+   */
   getStockMovements: (): StockMovement[] => getLocal(STORAGE_KEYS.STOCK_MOVEMENTS, []),
-  setStockMovements: (movements: StockMovement[]) => { setLocal(STORAGE_KEYS.STOCK_MOVEMENTS, movements); storageService.saveToCloud(); },
+  /**
+   * @deprecated Используйте api.inventory.updateMovements() для сохранения в Firebase
+   */
+  setStockMovements: (movements: StockMovement[]) => {
+      console.warn('[DEPRECATED] storageService.setStockMovements() is deprecated. Use api.inventory.updateMovements() instead.');
+      setLocal(STORAGE_KEYS.STOCK_MOVEMENTS, movements);
+  },
   
   getEnableTelegramImport: (): boolean => getLocal(STORAGE_KEYS.ENABLE_TELEGRAM_IMPORT, false),
   setEnableTelegramImport: (enabled: boolean) => setLocal(STORAGE_KEYS.ENABLE_TELEGRAM_IMPORT, enabled),
 
-  // Sales Funnels Local Accessors
+  // Sales Funnels Local Accessors - @deprecated
+  /**
+   * @deprecated Используйте api.funnels.getAll() для загрузки из Firebase
+   */
   getSalesFunnels: (): SalesFunnel[] => {
-    const funnels = getLocal(STORAGE_KEYS.SALES_FUNNELS, []);
-    return funnels.filter(f => !f.isArchived);
+      console.warn('[DEPRECATED] storageService.getSalesFunnels() is deprecated. Use api.funnels.getAll() instead.');
+      const funnels = getLocal(STORAGE_KEYS.SALES_FUNNELS, []);
+      return funnels.filter(f => !f.isArchived);
   },
-  setSalesFunnels: (funnels: SalesFunnel[]) => { setLocal(STORAGE_KEYS.SALES_FUNNELS, funnels); storageService.saveToCloud(); },
+  /**
+   * @deprecated Используйте api.funnels.updateAll() для сохранения в Firebase
+   */
+  setSalesFunnels: (funnels: SalesFunnel[]) => {
+      console.warn('[DEPRECATED] storageService.setSalesFunnels() is deprecated. Use api.funnels.updateAll() instead.');
+      setLocal(STORAGE_KEYS.SALES_FUNNELS, funnels);
+  },
 
+  /**
+   * @deprecated Этот метод больше не используется
+   * Данные загружаются напрямую из Firebase через endpoints (api.*.getAll())
+   */
   loadFromCloud: async (force: boolean = false) => {
       try {
           // Если force=true (первая загрузка), всегда загружаем из облака
@@ -142,6 +193,7 @@ export const storageService = {
           // Убрали проверку timeSinceLastSave - она мешала синхронизации между устройствами
           // Теперь синхронизация происходит всегда, кроме случаев когда идет сохранение
           
+          // @deprecated - этот метод больше не используется
           // Используем Firestore вместо Realtime Database
           const data = await firestoreService.loadFromCloud();
           // Если data === null, значит ошибка загрузки
@@ -447,6 +499,10 @@ export const storageService = {
       return false;
   },
 
+  /**
+   * @deprecated Этот метод больше не используется
+   * Данные сохраняются напрямую в Firebase через endpoints (api.*.create(), api.*.update())
+   */
   saveToCloud: async () => {
       // Фильтруем архивные элементы перед сохранением в Firebase
       // Архивные элементы НЕ сохраняются в Firebase - они удаляются навсегда
@@ -500,13 +556,17 @@ export const storageService = {
       // Используем Firestore вместо Realtime Database
       isSaving = true; // Устанавливаем флаг, что идет сохранение
       try {
-          await firestoreService.saveToCloud(fullState);
+          // @deprecated - этот метод больше не используется
+      await firestoreService.saveToCloud(fullState);
           lastSaveTime = Date.now(); // Отмечаем время последнего сохранения
       } finally {
           isSaving = false; // Снимаем флаг после завершения
       }
   },
 
+  /**
+   * @deprecated Используйте api.users.getAll() для загрузки из Firebase
+   */
   getUsers: (): User[] => {
       const users = getLocal(STORAGE_KEYS.USERS, []);
       // Удаляем дубликаты по логину (оставляем только последнего)
@@ -524,21 +584,69 @@ export const storageService = {
       }
       return Array.from(seen.values());
   }, // Пользователи загружаются только из Firebase
+  /**
+   * @deprecated Используйте api.tasks.getAll() для загрузки из Firebase
+   */
   getTasks: (): Task[] => getLocal(STORAGE_KEYS.TASKS, []),
+  /**
+   * @deprecated Используйте api.projects.getAll() для загрузки из Firebase
+   */
   getProjects: (): Project[] => getLocal(STORAGE_KEYS.PROJECTS, MOCK_PROJECTS),
+  /**
+   * @deprecated Используйте api.tables.getAll() для загрузки из Firebase
+   */
   getTables: (): TableCollection[] => getLocal(STORAGE_KEYS.TABLES, MOCK_TABLES),
+  /**
+   * @deprecated Используйте api.docs.getAll() для загрузки из Firebase
+   */
   getDocs: (): Doc[] => getLocal(STORAGE_KEYS.DOCS, []),
+  /**
+   * @deprecated Используйте api.folders.getAll() для загрузки из Firebase
+   */
   getFolders: (): Folder[] => getLocal(STORAGE_KEYS.FOLDERS, []),
+  /**
+   * @deprecated Используйте api.meetings.getAll() для загрузки из Firebase
+   */
   getMeetings: (): Meeting[] => getLocal(STORAGE_KEYS.MEETINGS, []),
+  /**
+   * @deprecated Используйте api.contentPosts.getAll() для загрузки из Firebase
+   */
   getContentPosts: (): ContentPost[] => getLocal(STORAGE_KEYS.CONTENT_POSTS, []),
+  /**
+   * @deprecated Используйте api.activity.getAll() для загрузки из Firebase
+   */
   getActivities: (): ActivityLog[] => getLocal(STORAGE_KEYS.ACTIVITY, []),
+  /**
+   * @deprecated Используйте api.statuses.getAll() для загрузки из Firebase
+   */
   getStatuses: (): StatusOption[] => getLocal(STORAGE_KEYS.STATUSES, DEFAULT_STATUSES),
+  /**
+   * @deprecated Используйте api.priorities.getAll() для загрузки из Firebase
+   */
   getPriorities: (): PriorityOption[] => getLocal(STORAGE_KEYS.PRIORITIES, DEFAULT_PRIORITIES),
+  /**
+   * @deprecated Используйте api.clients.getAll() для загрузки из Firebase
+   */
   getClients: (): Client[] => getLocal(STORAGE_KEYS.CLIENTS, []),
+  /**
+   * @deprecated Используйте api.contracts.getAll() для загрузки из Firebase
+   */
   getContracts: (): Contract[] => getLocal(STORAGE_KEYS.CONTRACTS, []),
+  /**
+   * @deprecated Используйте api.oneTimeDeals.getAll() для загрузки из Firebase
+   */
   getOneTimeDeals: (): OneTimeDeal[] => getLocal(STORAGE_KEYS.ONE_TIME_DEALS, []),
+  /**
+   * @deprecated Используйте api.accountsReceivable.getAll() для загрузки из Firebase
+   */
   getAccountsReceivable: (): AccountsReceivable[] => getLocal(STORAGE_KEYS.ACCOUNTS_RECEIVABLE, []),
+  /**
+   * @deprecated Используйте api.employees.getAll() для загрузки из Firebase
+   */
   getEmployeeInfos: (): EmployeeInfo[] => getLocal(STORAGE_KEYS.EMPLOYEE_INFOS, []),
+  /**
+   * @deprecated Используйте api.deals.getAll() для загрузки из Firebase
+   */
   getDeals: (): Deal[] => getLocal(STORAGE_KEYS.DEALS, []),
   getNotificationPrefs: (): NotificationPreferences => getLocal(STORAGE_KEYS.NOTIFICATION_PREFS, DEFAULT_NOTIFICATION_PREFS),
   
@@ -557,119 +665,211 @@ export const storageService = {
   // Automation
   getAutomationRules: (): AutomationRule[] => getLocal(STORAGE_KEYS.AUTOMATION_RULES, DEFAULT_AUTOMATION_RULES),
 
+  /**
+   * @deprecated Используйте api.users.updateAll() для сохранения в Firebase
+   */
   setUsers: (users: User[]) => {
-      // Удаляем дубликаты по логину перед сохранением
-      const removeDuplicatesByLogin = (usersList: User[]): User[] => {
-          const seen = new Map<string, User>();
-          // Проходим в обратном порядке, чтобы оставить последнего
-          for (let i = usersList.length - 1; i >= 0; i--) {
-              const user = usersList[i];
-              if (user.login && !seen.has(user.login)) {
-                  seen.set(user.login, user);
-              } else if (!user.login) {
-                  // Пользователи без логина добавляем по id
-                  if (!seen.has(user.id)) {
-                      seen.set(user.id, user);
-                  }
-              }
-          }
-          return Array.from(seen.values());
-      };
-      const deduplicatedUsers = removeDuplicatesByLogin(users);
-      setLocal(STORAGE_KEYS.USERS, deduplicatedUsers); 
-      // Сохраняем в Firestore асинхронно, не блокируя UI
-      storageService.saveToCloud().catch(err => console.error('Failed to save users to cloud:', err)); 
-    setLocal(STORAGE_KEYS.USERS, users); 
-    // Сохраняем в Firestore асинхронно, не блокируя UI
-    storageService.saveToCloud().catch(err => console.error('Failed to save users to cloud:', err)); 
+      console.warn('[DEPRECATED] storageService.setUsers() is deprecated. Use api.users.updateAll() instead.');
+      // Оставляем для обратной совместимости, но не сохраняем в Firebase
+      setLocal(STORAGE_KEYS.USERS, users);
   },
-  setTasks: (tasks: Task[]) => { 
-    setLocal(STORAGE_KEYS.TASKS, tasks); 
-    // Сохраняем в Firebase асинхронно
-    storageService.saveToCloud().catch(err => console.error('Failed to save tasks to cloud:', err)); 
+  /**
+   * @deprecated Используйте api.tasks.updateAll() для сохранения в Firebase
+   */
+  setTasks: (tasks: Task[]) => {
+      console.warn('[DEPRECATED] storageService.setTasks() is deprecated. Use api.tasks.updateAll() instead.');
+      setLocal(STORAGE_KEYS.TASKS, tasks);
   },
-  setProjects: (projects: Project[]) => { 
-    setLocal(STORAGE_KEYS.PROJECTS, projects); 
-    storageService.saveToCloud().catch(err => console.error('Failed to save projects to cloud:', err)); 
+  /**
+   * @deprecated Используйте api.projects.updateAll() для сохранения в Firebase
+   */
+  setProjects: (projects: Project[]) => {
+      console.warn('[DEPRECATED] storageService.setProjects() is deprecated. Use api.projects.updateAll() instead.');
+      setLocal(STORAGE_KEYS.PROJECTS, projects);
   },
-  setTables: (tables: TableCollection[]) => { 
-    setLocal(STORAGE_KEYS.TABLES, tables); 
-    storageService.saveToCloud().catch(err => console.error('Failed to save tables to cloud:', err)); 
+  /**
+   * @deprecated Используйте api.tables.updateAll() для сохранения в Firebase
+   */
+  setTables: (tables: TableCollection[]) => {
+      console.warn('[DEPRECATED] storageService.setTables() is deprecated. Use api.tables.updateAll() instead.');
+      setLocal(STORAGE_KEYS.TABLES, tables);
   },
-  setDocs: (docs: Doc[]) => { 
-    setLocal(STORAGE_KEYS.DOCS, docs); 
-    storageService.saveToCloud().catch(err => console.error('Failed to save docs to cloud:', err)); 
+  /**
+   * @deprecated Используйте api.docs.updateAll() для сохранения в Firebase
+   */
+  setDocs: (docs: Doc[]) => {
+      console.warn('[DEPRECATED] storageService.setDocs() is deprecated. Use api.docs.updateAll() instead.');
+      setLocal(STORAGE_KEYS.DOCS, docs);
   },
-  setFolders: (folders: Folder[]) => { 
-    setLocal(STORAGE_KEYS.FOLDERS, folders); 
-    storageService.saveToCloud().catch(err => console.error('Failed to save folders to cloud:', err)); 
+  /**
+   * @deprecated Используйте api.folders.updateAll() для сохранения в Firebase
+   */
+  setFolders: (folders: Folder[]) => {
+      console.warn('[DEPRECATED] storageService.setFolders() is deprecated. Use api.folders.updateAll() instead.');
+      setLocal(STORAGE_KEYS.FOLDERS, folders);
   },
-  setMeetings: (meetings: Meeting[]) => { 
-    setLocal(STORAGE_KEYS.MEETINGS, meetings); 
-    storageService.saveToCloud().catch(err => console.error('Failed to save meetings to cloud:', err)); 
+  /**
+   * @deprecated Используйте api.meetings.updateAll() для сохранения в Firebase
+   */
+  setMeetings: (meetings: Meeting[]) => {
+      console.warn('[DEPRECATED] storageService.setMeetings() is deprecated. Use api.meetings.updateAll() instead.');
+      setLocal(STORAGE_KEYS.MEETINGS, meetings);
   },
-  setContentPosts: (posts: ContentPost[]) => { 
-    setLocal(STORAGE_KEYS.CONTENT_POSTS, posts); 
-    storageService.saveToCloud().catch(err => console.error('Failed to save content posts to cloud:', err)); 
+  /**
+   * @deprecated Используйте api.contentPosts.updateAll() для сохранения в Firebase
+   */
+  setContentPosts: (posts: ContentPost[]) => {
+      console.warn('[DEPRECATED] storageService.setContentPosts() is deprecated. Use api.contentPosts.updateAll() instead.');
+      setLocal(STORAGE_KEYS.CONTENT_POSTS, posts);
   },
-  setActivities: (logs: ActivityLog[]) => { 
-    setLocal(STORAGE_KEYS.ACTIVITY, logs); 
-    storageService.saveToCloud().catch(err => console.error('Failed to save activities to cloud:', err)); 
+  /**
+   * @deprecated Используйте api.activity.add() для сохранения в Firebase
+   */
+  setActivities: (logs: ActivityLog[]) => {
+      console.warn('[DEPRECATED] storageService.setActivities() is deprecated. Use api.activity.add() instead.');
+      setLocal(STORAGE_KEYS.ACTIVITY, logs);
   },
-  setStatuses: (statuses: StatusOption[]) => { 
-    setLocal(STORAGE_KEYS.STATUSES, statuses); 
-    storageService.saveToCloud().catch(err => console.error('Failed to save statuses to cloud:', err)); 
+  /**
+   * @deprecated Используйте api.statuses.updateAll() для сохранения в Firebase
+   */
+  setStatuses: (statuses: StatusOption[]) => {
+      console.warn('[DEPRECATED] storageService.setStatuses() is deprecated. Use api.statuses.updateAll() instead.');
+      setLocal(STORAGE_KEYS.STATUSES, statuses);
   },
-  setPriorities: (priorities: PriorityOption[]) => { 
-    setLocal(STORAGE_KEYS.PRIORITIES, priorities); 
-    storageService.saveToCloud().catch(err => console.error('Failed to save priorities to cloud:', err)); 
+  /**
+   * @deprecated Используйте api.priorities.updateAll() для сохранения в Firebase
+   */
+  setPriorities: (priorities: PriorityOption[]) => {
+      console.warn('[DEPRECATED] storageService.setPriorities() is deprecated. Use api.priorities.updateAll() instead.');
+      setLocal(STORAGE_KEYS.PRIORITIES, priorities);
   },
-  setClients: (clients: Client[]) => { 
-    setLocal(STORAGE_KEYS.CLIENTS, clients); 
-    storageService.saveToCloud().catch(err => console.error('Failed to save clients to cloud:', err)); 
+  /**
+   * @deprecated Используйте api.clients.updateAll() для сохранения в Firebase
+   */
+  setClients: (clients: Client[]) => {
+      console.warn('[DEPRECATED] storageService.setClients() is deprecated. Use api.clients.updateAll() instead.');
+      setLocal(STORAGE_KEYS.CLIENTS, clients);
   },
-  setContracts: (contracts: Contract[]) => { 
-    setLocal(STORAGE_KEYS.CONTRACTS, contracts); 
-    storageService.saveToCloud().catch(err => console.error('Failed to save contracts to cloud:', err)); 
+  /**
+   * @deprecated Используйте api.contracts.updateAll() для сохранения в Firebase
+   */
+  setContracts: (contracts: Contract[]) => {
+      console.warn('[DEPRECATED] storageService.setContracts() is deprecated. Use api.contracts.updateAll() instead.');
+      setLocal(STORAGE_KEYS.CONTRACTS, contracts);
   },
-  setOneTimeDeals: (deals: OneTimeDeal[]) => { 
-    setLocal(STORAGE_KEYS.ONE_TIME_DEALS, deals); 
-    storageService.saveToCloud().catch(err => console.error('Failed to save one-time deals to cloud:', err)); 
+  /**
+   * @deprecated Используйте api.oneTimeDeals.updateAll() для сохранения в Firebase
+   */
+  setOneTimeDeals: (deals: OneTimeDeal[]) => {
+      console.warn('[DEPRECATED] storageService.setOneTimeDeals() is deprecated. Use api.oneTimeDeals.updateAll() instead.');
+      setLocal(STORAGE_KEYS.ONE_TIME_DEALS, deals);
   },
-  setAccountsReceivable: (receivables: AccountsReceivable[]) => { 
-    setLocal(STORAGE_KEYS.ACCOUNTS_RECEIVABLE, receivables); 
-    storageService.saveToCloud().catch(err => console.error('Failed to save accounts receivable to cloud:', err)); 
+  /**
+   * @deprecated Используйте api.accountsReceivable.updateAll() для сохранения в Firebase
+   */
+  setAccountsReceivable: (receivables: AccountsReceivable[]) => {
+      console.warn('[DEPRECATED] storageService.setAccountsReceivable() is deprecated. Use api.accountsReceivable.updateAll() instead.');
+      setLocal(STORAGE_KEYS.ACCOUNTS_RECEIVABLE, receivables);
   },
-  setEmployeeInfos: (infos: EmployeeInfo[]) => { 
-    setLocal(STORAGE_KEYS.EMPLOYEE_INFOS, infos); 
-    storageService.saveToCloud().catch(err => console.error('Failed to save employee infos to cloud:', err)); 
+  /**
+   * @deprecated Используйте api.employees.updateAll() для сохранения в Firebase
+   */
+  setEmployeeInfos: (infos: EmployeeInfo[]) => {
+      console.warn('[DEPRECATED] storageService.setEmployeeInfos() is deprecated. Use api.employees.updateAll() instead.');
+      setLocal(STORAGE_KEYS.EMPLOYEE_INFOS, infos);
   },
-  setDeals: (deals: Deal[]) => { 
-    setLocal(STORAGE_KEYS.DEALS, deals); 
-    storageService.saveToCloud().catch(err => console.error('Failed to save deals to cloud:', err)); 
+  /**
+   * @deprecated Используйте api.deals.updateAll() для сохранения в Firebase
+   */
+  setDeals: (deals: Deal[]) => {
+      console.warn('[DEPRECATED] storageService.setDeals() is deprecated. Use api.deals.updateAll() instead.');
+      setLocal(STORAGE_KEYS.DEALS, deals);
   },
-  setNotificationPrefs: (prefs: NotificationPreferences) => { setLocal(STORAGE_KEYS.NOTIFICATION_PREFS, prefs); storageService.saveToCloud(); },
+  /**
+   * @deprecated Используйте api.notificationPrefs.update() для сохранения в Firebase
+   */
+  setNotificationPrefs: (prefs: NotificationPreferences) => {
+      console.warn('[DEPRECATED] storageService.setNotificationPrefs() is deprecated. Use api.notificationPrefs.update() instead.');
+      setLocal(STORAGE_KEYS.NOTIFICATION_PREFS, prefs);
+  },
   
-  // Finance Setters
-  setDepartments: (deps: Department[]) => { setLocal(STORAGE_KEYS.DEPARTMENTS, deps); storageService.saveToCloud(); },
-  setFinanceCategories: (cats: FinanceCategory[]) => { setLocal(STORAGE_KEYS.FINANCE_CATEGORIES, cats); storageService.saveToCloud(); },
-  setFinancePlan: (plan: FinancePlan) => { setLocal(STORAGE_KEYS.FINANCE_PLAN, plan); storageService.saveToCloud(); },
-  setPurchaseRequests: (reqs: PurchaseRequest[]) => { setLocal(STORAGE_KEYS.PURCHASE_REQUESTS, reqs); storageService.saveToCloud(); },
-  setFinancialPlanDocuments: (docs: FinancialPlanDocument[]) => { setLocal(STORAGE_KEYS.FINANCIAL_PLAN_DOCUMENTS, docs); storageService.saveToCloud(); },
-  setFinancialPlannings: (plannings: FinancialPlanning[]) => { setLocal(STORAGE_KEYS.FINANCIAL_PLANNINGS, plannings); storageService.saveToCloud(); },
+  // Finance Setters - @deprecated
+  /**
+   * @deprecated Используйте api.departments.updateAll() для сохранения в Firebase
+   */
+  setDepartments: (deps: Department[]) => {
+      console.warn('[DEPRECATED] storageService.setDepartments() is deprecated. Use api.departments.updateAll() instead.');
+      setLocal(STORAGE_KEYS.DEPARTMENTS, deps);
+  },
+  /**
+   * @deprecated Используйте api.finance.updateCategories() для сохранения в Firebase
+   */
+  setFinanceCategories: (cats: FinanceCategory[]) => {
+      console.warn('[DEPRECATED] storageService.setFinanceCategories() is deprecated. Use api.finance.updateCategories() instead.');
+      setLocal(STORAGE_KEYS.FINANCE_CATEGORIES, cats);
+  },
+  /**
+   * @deprecated Используйте api.finance.updatePlan() для сохранения в Firebase
+   */
+  setFinancePlan: (plan: FinancePlan) => {
+      console.warn('[DEPRECATED] storageService.setFinancePlan() is deprecated. Use api.finance.updatePlan() instead.');
+      setLocal(STORAGE_KEYS.FINANCE_PLAN, plan);
+  },
+  /**
+   * @deprecated Используйте api.finance.updateRequests() для сохранения в Firebase
+   */
+  setPurchaseRequests: (reqs: PurchaseRequest[]) => {
+      console.warn('[DEPRECATED] storageService.setPurchaseRequests() is deprecated. Use api.finance.updateRequests() instead.');
+      setLocal(STORAGE_KEYS.PURCHASE_REQUESTS, reqs);
+  },
+  /**
+   * @deprecated Используйте api.finance.updateFinancialPlanDocuments() для сохранения в Firebase
+   */
+  setFinancialPlanDocuments: (docs: FinancialPlanDocument[]) => {
+      console.warn('[DEPRECATED] storageService.setFinancialPlanDocuments() is deprecated. Use api.finance.updateFinancialPlanDocuments() instead.');
+      setLocal(STORAGE_KEYS.FINANCIAL_PLAN_DOCUMENTS, docs);
+  },
+  /**
+   * @deprecated Используйте api.finance.updateFinancialPlannings() для сохранения в Firebase
+   */
+  setFinancialPlannings: (plannings: FinancialPlanning[]) => {
+      console.warn('[DEPRECATED] storageService.setFinancialPlannings() is deprecated. Use api.finance.updateFinancialPlannings() instead.');
+      setLocal(STORAGE_KEYS.FINANCIAL_PLANNINGS, plannings);
+  },
 
-  // BPM Setters
-  setOrgPositions: (ops: OrgPosition[]) => { setLocal(STORAGE_KEYS.ORG_POSITIONS, ops); storageService.saveToCloud(); },
-  setBusinessProcesses: (bps: BusinessProcess[]) => { setLocal(STORAGE_KEYS.BUSINESS_PROCESSES, bps); storageService.saveToCloud(); },
+  // BPM Setters - @deprecated
+  /**
+   * @deprecated Используйте api.bpm.updatePositions() для сохранения в Firebase
+   */
+  setOrgPositions: (ops: OrgPosition[]) => {
+      console.warn('[DEPRECATED] storageService.setOrgPositions() is deprecated. Use api.bpm.updatePositions() instead.');
+      setLocal(STORAGE_KEYS.ORG_POSITIONS, ops);
+  },
+  /**
+   * @deprecated Используйте api.bpm.updateProcesses() для сохранения в Firebase
+   */
+  setBusinessProcesses: (bps: BusinessProcess[]) => {
+      console.warn('[DEPRECATED] storageService.setBusinessProcesses() is deprecated. Use api.bpm.updateProcesses() instead.');
+      setLocal(STORAGE_KEYS.BUSINESS_PROCESSES, bps);
+  },
 
-  // Automation Setters
-  setAutomationRules: (rules: AutomationRule[]) => { setLocal(STORAGE_KEYS.AUTOMATION_RULES, rules); storageService.saveToCloud(); },
+  // Automation Setters - @deprecated
+  /**
+   * @deprecated Используйте api.automation.updateRules() для сохранения в Firebase
+   */
+  setAutomationRules: (rules: AutomationRule[]) => {
+      console.warn('[DEPRECATED] storageService.setAutomationRules() is deprecated. Use api.automation.updateRules() instead.');
+      setLocal(STORAGE_KEYS.AUTOMATION_RULES, rules);
+  },
 
+  /**
+   * @deprecated Используйте api.activity.add() для сохранения в Firebase
+   */
   addActivity: (log: ActivityLog) => {
+      console.warn('[DEPRECATED] storageService.addActivity() is deprecated. Use api.activity.add() instead.');
       const logs = getLocal<ActivityLog[]>(STORAGE_KEYS.ACTIVITY, []);
-      const newLogs = [log, ...logs].slice(0, 100); 
+      const newLogs = [log, ...logs].slice(0, 100);
       setLocal(STORAGE_KEYS.ACTIVITY, newLogs);
-      storageService.saveToCloud();
       return newLogs;
   },
 };

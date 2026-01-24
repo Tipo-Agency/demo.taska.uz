@@ -4,7 +4,7 @@ import { authEndpoint } from "./endpoints/auth.endpoint";
 import { tasksEndpoint, projectsEndpoint } from "./endpoints/tasks.endpoint";
 import { clientsEndpoint, contractsEndpoint, employeesEndpoint, dealsEndpoint, oneTimeDealsEndpoint, accountsReceivableEndpoint } from "./endpoints/crm.endpoint";
 import { docsEndpoint, foldersEndpoint, meetingsEndpoint, contentPostsEndpoint } from "./endpoints/content.endpoint";
-import { tablesEndpoint, activityEndpoint, statusesEndpoint, prioritiesEndpoint, notificationPrefsEndpoint, automationEndpoint } from "./endpoints/settings.endpoint";
+import { tablesEndpoint, activityEndpoint, statusesEndpoint, prioritiesEndpoint, notificationPrefsEndpoint, automationEndpoint, notificationQueueEndpoint } from "./endpoints/settings.endpoint";
 import { departmentsEndpoint, financeEndpoint } from "./endpoints/finance.endpoint";
 import { bpmEndpoint } from "./endpoints/bpm.endpoint";
 import { inventoryEndpoint } from "./endpoints/inventory.endpoint";
@@ -12,9 +12,9 @@ import { funnelsEndpoint } from "./endpoints/funnels.endpoint";
 import { partnerLogosEndpoint, newsEndpoint, casesEndpoint, tagsEndpoint, publicSitesEndpoint } from "./endpoints/sites.endpoint";
 
 // The Unified "Backend" Interface
+// ВАЖНО: Все данные загружаются напрямую из Firebase через endpoints
+// localStorage используется ТОЛЬКО для настроек сессии (activeUserId, tokens, darkMode)
 export const api = {
-  sync: async (force: boolean = false) => await storageService.loadFromCloud(force),
-  
   users: authEndpoint,
   
   tasks: tasksEndpoint,
@@ -26,6 +26,7 @@ export const api = {
   priorities: prioritiesEndpoint,
   notificationPrefs: notificationPrefsEndpoint,
   automation: automationEndpoint,
+  notificationQueue: notificationQueueEndpoint,
   
   clients: clientsEndpoint,
   contracts: contractsEndpoint,

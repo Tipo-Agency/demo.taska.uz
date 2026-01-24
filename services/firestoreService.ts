@@ -99,9 +99,11 @@ const prepareDataFromFirestore = (data: any): any => {
 
 export const firestoreService = {
   /**
-   * Save entire state to Firestore
+   * @deprecated Этот метод больше не используется
+   * Данные сохраняются напрямую через firestoreService.save() в endpoints
    */
   saveToCloud: async (fullState: any) => {
+      console.warn('[DEPRECATED] firestoreService.saveToCloud() is deprecated. Use firestoreService.save() in endpoints instead.');
     try {
       const batch = writeBatch(db);
       
@@ -151,9 +153,11 @@ export const firestoreService = {
   },
 
   /**
-   * Load entire state from Firestore
+   * @deprecated Этот метод больше не используется
+   * Данные загружаются напрямую через firestoreService.getAll() в endpoints
    */
   loadFromCloud: async (): Promise<any> => {
+      console.warn('[DEPRECATED] firestoreService.loadFromCloud() is deprecated. Use firestoreService.getAll() in endpoints instead.');
     try {
       const collections = [
         'users', 'tasks', 'projects', 'tables', 'docs', 'folders',

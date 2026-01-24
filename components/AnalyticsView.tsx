@@ -2,6 +2,8 @@
 import React, { useState } from 'react';
 import { Task, Deal, User, FinancePlan, Contract } from '../types';
 import { PieChart, TrendingUp, DollarSign, CheckCircle2, User as UserIcon, BarChart3, Clock, Wallet, Download, FileText, Filter, Layers, X, Eye } from 'lucide-react';
+import { ResponsiveTable } from './features/common/ResponsiveTable';
+import { UserAvatar } from './features/common/UserAvatar';
 
 interface AnalyticsViewProps {
   tasks: Task[];
@@ -200,37 +202,60 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({ tasks, deals, users, fina
                <div className="p-6 border-b border-gray-200 dark:border-[#333]">
                    <h3 className="font-bold text-gray-800 dark:text-white">Рейтинг сотрудников</h3>
                </div>
-               <table className="w-full text-left text-sm">
-                   <thead className="bg-gray-50 dark:bg-[#202020] border-b border-gray-200 dark:border-[#333]">
-                       <tr>
-                           <th className="px-6 py-3 text-gray-500 dark:text-gray-400 font-semibold w-16">#</th>
-                           <th className="px-6 py-3 text-gray-500 dark:text-gray-400 font-semibold">Сотрудник</th>
-                           <th className="px-6 py-3 text-gray-500 dark:text-gray-400 font-semibold text-right">Закрыто задач</th>
-                           <th className="px-6 py-3 text-gray-500 dark:text-gray-400 font-semibold text-right">Эффективность</th>
-                           <th className="px-6 py-3 text-gray-500 dark:text-gray-400 font-semibold text-right">Продажи (UZS)</th>
-                       </tr>
-                   </thead>
-                   <tbody className="divide-y divide-gray-100 dark:divide-[#333]">
-                       {employeeStats.map((emp, idx) => (
-                           <tr key={emp.id} className="hover:bg-gray-50 dark:hover:bg-[#303030]">
-                               <td className="px-6 py-4 text-gray-400 font-medium">{idx + 1}</td>
-                               <td className="px-6 py-4 flex items-center gap-3">
-                                   <img src={emp.avatar} className="w-8 h-8 rounded-full border border-gray-200 dark:border-gray-600 object-cover object-center" alt=""/>
+               <ResponsiveTable
+                   data={employeeStats}
+                   columns={[
+                       {
+                           key: 'rank',
+                           label: '#',
+                           render: (emp, idx) => <span className="text-gray-400 font-medium">{idx + 1}</span>,
+                           className: 'w-16'
+                       },
+                       {
+                           key: 'name',
+                           label: 'Сотрудник',
+                           render: (emp) => (
+                               <div className="flex items-center gap-3">
+                                   <UserAvatar user={{ id: emp.id, name: emp.name, avatar: emp.avatar } as User} size="sm" />
                                    <span className="font-bold text-gray-800 dark:text-gray-200">{emp.name}</span>
-                               </td>
-                               <td className="px-6 py-4 text-right font-medium text-gray-700 dark:text-gray-300">
+                               </div>
+                           )
+                       },
+                       {
+                           key: 'completedTasks',
+                           label: 'Закрыто задач',
+                           render: (emp) => (
+                               <span className="text-right font-medium text-gray-700 dark:text-gray-300">
                                    {emp.completedTasks}
-                               </td>
-                               <td className="px-6 py-4 text-right font-medium text-gray-700 dark:text-gray-300">
+                               </span>
+                           ),
+                           className: 'text-right'
+                       },
+                       {
+                           key: 'efficiency',
+                           label: 'Эффективность',
+                           render: (emp) => (
+                               <span className="text-right font-medium text-gray-700 dark:text-gray-300">
                                    {emp.totalTasks > 0 ? Math.round((emp.completedTasks / emp.totalTasks) * 100) : 0}%
-                               </td>
-                               <td className="px-6 py-4 text-right font-bold text-green-600 dark:text-green-400">
+                               </span>
+                           ),
+                           className: 'text-right'
+                       },
+                       {
+                           key: 'revenue',
+                           label: 'Продажи (UZS)',
+                           render: (emp) => (
+                               <span className="text-right font-bold text-green-600 dark:text-green-400">
                                    {emp.revenue.toLocaleString()}
-                               </td>
-                           </tr>
-                       ))}
-                   </tbody>
-               </table>
+                               </span>
+                           ),
+                           className: 'text-right'
+                       }
+                   ]}
+                   keyExtractor={(emp) => emp.id}
+                   emptyMessage="Нет данных о сотрудниках"
+                   className="p-0"
+               />
            </div>
       </div>
   );

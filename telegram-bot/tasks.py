@@ -3,8 +3,11 @@
 """
 from typing import List, Dict, Any, Optional
 from datetime import datetime
+import logging
 from firebase_client import firebase
 from utils import get_today_date, is_overdue
+
+logger = logging.getLogger(__name__)
 
 def get_user_tasks(user_id: str, include_archived: bool = False) -> List[Dict[str, Any]]:
     """Получить задачи пользователя"""
@@ -38,76 +41,113 @@ def get_user_tasks(user_id: str, include_archived: bool = False) -> List[Dict[st
 def get_today_tasks(user_id: str) -> List[Dict[str, Any]]:
     """Получить задачи на сегодня"""
     try:
-        today = get_today_date()
-        print(f"[TASKS] Getting today tasks for user_id: {user_id}, today: {today}")
+        from datetime import date
+        import pytz
+        
+        tz = pytz.timezone('Asia/Tashkent')
+        today = datetime.now(tz).date()
+        today_str = today.isoformat()
+        
+        logger.info(f"[TASKS] Getting today tasks for user_id: {user_id}, today: {today_str}")
         
         user_tasks = get_user_tasks(user_id)
-        print(f"[TASKS] Found {len(user_tasks)} user tasks total")
+        logger.info(f"[TASKS] Found {len(user_tasks)} user tasks total")
         
         today_tasks = []
         for task in user_tasks:
-            end_date = task.get('endDate', '')
+            end_date_str = task.get('endDate', '')
+            if not end_date_str:
+                continue
+            
             # Нормализуем дату - убираем время если есть
-            if end_date:
-                # Если дата содержит время, берем только дату
-                if 'T' in end_date:
-                    end_date = end_date.split('T')[0]
-                elif ' ' in end_date:
-                    end_date = end_date.split(' ')[0]
+            if 'T' in end_date_str:
+                end_date_str = end_date_str.split('T')[0]
+            elif ' ' in end_date_str:
+                end_date_str = end_date_str.split(' ')[0]
             
-            print(f"[TASKS] Task {task.get('id')}: endDate={end_date}, today={today}, match={end_date == today}")
-            
-            # Сравниваем даты (может быть в формате YYYY-MM-DD или другой)
-            if end_date and (end_date == today or end_date.startswith(today)):
-                # Исключаем выполненные задачи
-                status = task.get('status', '').lower()
-                if status not in ['выполнено', 'done', 'завершено', 'completed']:
-                    today_tasks.append(task)
-                    print(f"[TASKS] Added task {task.get('id')} to today tasks")
+            # Парсим дату
+            try:
+                # Пробуем разные форматы
+                if len(end_date_str) == 10:  # YYYY-MM-DD
+                    task_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+                elif len(end_date_str) == 8:  # YYYYMMDD
+                    task_date = datetime.strptime(end_date_str, '%Y%m%d').date()
+                else:
+                    # Пробуем ISO формат
+                    task_date = datetime.fromisoformat(end_date_str.replace('Z', '+00:00')).date()
+                
+                logger.info(f"[TASKS] Task {task.get('id')}: endDate={end_date_str}, parsed={task_date}, today={today}, match={task_date == today}")
+                
+                # Сравниваем даты
+                if task_date == today:
+                    # Исключаем выполненные задачи
+                    status = task.get('status', '').lower()
+                    if status not in ['выполнено', 'done', 'завершено', 'completed']:
+                        today_tasks.append(task)
+                        logger.info(f"[TASKS] Added task {task.get('id')} '{task.get('title', '')}' to today tasks")
+            except Exception as date_error:
+                logger.warning(f"[TASKS] Error parsing date '{end_date_str}' for task {task.get('id')}: {date_error}")
+                continue
         
-        print(f"[TASKS] Returning {len(today_tasks)} today tasks")
+        logger.info(f"[TASKS] Returning {len(today_tasks)} today tasks")
         return today_tasks
     except Exception as e:
-        print(f"Error getting today tasks: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.error(f"Error getting today tasks: {e}", exc_info=True)
         return []
 
 def get_overdue_tasks(user_id: str) -> List[Dict[str, Any]]:
     """Получить просроченные задачи"""
     try:
-        print(f"[TASKS] Getting overdue tasks for user_id: {user_id}")
+        from datetime import date
+        import pytz
+        
+        tz = pytz.timezone('Asia/Tashkent')
+        today = datetime.now(tz).date()
+        
+        logger.info(f"[TASKS] Getting overdue tasks for user_id: {user_id}, today: {today.isoformat()}")
         user_tasks = get_user_tasks(user_id)
-        print(f"[TASKS] Found {len(user_tasks)} user tasks total")
+        logger.info(f"[TASKS] Found {len(user_tasks)} user tasks total")
         
         overdue_tasks = []
         for task in user_tasks:
-            end_date = task.get('endDate', '')
-            if end_date:
-                # Нормализуем дату - убираем время если есть
-                if 'T' in end_date:
-                    end_date_normalized = end_date.split('T')[0]
-                elif ' ' in end_date:
-                    end_date_normalized = end_date.split(' ')[0]
+            end_date_str = task.get('endDate', '')
+            if not end_date_str:
+                continue
+            
+            # Нормализуем дату - убираем время если есть
+            if 'T' in end_date_str:
+                end_date_str = end_date_str.split('T')[0]
+            elif ' ' in end_date_str:
+                end_date_str = end_date_str.split(' ')[0]
+            
+            # Парсим дату
+            try:
+                # Пробуем разные форматы
+                if len(end_date_str) == 10:  # YYYY-MM-DD
+                    task_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+                elif len(end_date_str) == 8:  # YYYYMMDD
+                    task_date = datetime.strptime(end_date_str, '%Y%m%d').date()
                 else:
-                    end_date_normalized = end_date
+                    # Пробуем ISO формат
+                    task_date = datetime.fromisoformat(end_date_str.replace('Z', '+00:00')).date()
                 
-                is_overdue_task = is_overdue(end_date_normalized)
-                print(f"[TASKS] Task {task.get('id')}: endDate={end_date}, is_overdue={is_overdue_task}")
+                is_overdue_task = task_date < today
+                logger.info(f"[TASKS] Task {task.get('id')}: endDate={end_date_str}, parsed={task_date}, today={today}, is_overdue={is_overdue_task}")
                 
                 if is_overdue_task:
                     # Исключаем выполненные задачи
                     status = task.get('status', '').lower()
                     if status not in ['выполнено', 'done', 'завершено', 'completed']:
                         overdue_tasks.append(task)
-                        print(f"[TASKS] Added task {task.get('id')} to overdue tasks")
+                        logger.info(f"[TASKS] Added task {task.get('id')} '{task.get('title', '')}' to overdue tasks")
+            except Exception as date_error:
+                logger.warning(f"[TASKS] Error parsing date '{end_date_str}' for task {task.get('id')}: {date_error}")
+                continue
         
-        print(f"[TASKS] Returning {len(overdue_tasks)} overdue tasks")
+        logger.info(f"[TASKS] Returning {len(overdue_tasks)} overdue tasks")
         return overdue_tasks
     except Exception as e:
-        print(f"Error getting overdue tasks: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.error(f"Error getting overdue tasks: {e}", exc_info=True)
         return []
 
 def get_yesterday_tasks() -> List[Dict[str, Any]]:

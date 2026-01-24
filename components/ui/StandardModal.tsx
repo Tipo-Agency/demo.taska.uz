@@ -1,6 +1,11 @@
 import React, { useEffect } from 'react';
 import { X, ChevronRight } from 'lucide-react';
 
+interface Breadcrumb {
+  label: string;
+  onClick?: () => void;
+}
+
 interface StandardModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -11,6 +16,7 @@ interface StandardModalProps {
   size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
   showCloseButton?: boolean;
   onBackdropClick?: () => void;
+  breadcrumbs?: Breadcrumb[];
 }
 
 export const StandardModal: React.FC<StandardModalProps> = ({
