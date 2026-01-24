@@ -16,10 +16,19 @@ export const ClientsTab: React.FC<ClientsTabProps> = ({
   onEditClient,
   onCreateContract,
 }) => {
+  if (!clients || !Array.isArray(clients)) {
+    return (
+      <div className="p-10 text-center text-gray-500 dark:text-gray-400">
+        Нет клиентов
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {clients.map(client => {
-        const clientContracts = contracts.filter(c => !c.isArchived && c.clientId === client.id);
+        if (!client) return null;
+        const clientContracts = (contracts || []).filter(c => c && !c.isArchived && c.clientId === client.id);
         return (
           <Card key={client.id} padding="lg" hover onClick={() => onEditClient(client)} className="relative flex flex-col h-full">
             <div className="flex justify-between items-start mb-4">

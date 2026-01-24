@@ -262,9 +262,10 @@ async def tasks_today(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         user_id = user_sessions[telegram_user_id]['user_id']
         
-        logger.info(f"[TASKS_TODAY] Getting today tasks for user_id: {user_id}")
+        logger.info(f"[TASKS_TODAY] ===== CALLBACK RECEIVED =====")
+        logger.info(f"[TASKS_TODAY] Getting today tasks for user_id: {user_id}, telegram_user_id: {telegram_user_id}")
         tasks = get_today_tasks(user_id)
-        logger.info(f"[TASKS_TODAY] Found {len(tasks)} today tasks")
+        logger.info(f"[TASKS_TODAY] Found {len(tasks)} today tasks after filtering")
         
         if not tasks:
             await query.edit_message_text(
@@ -323,9 +324,10 @@ async def tasks_overdue(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         user_id = user_sessions[telegram_user_id]['user_id']
         
-        logger.info(f"[TASKS_OVERDUE] Getting overdue tasks for user_id: {user_id}")
+        logger.info(f"[TASKS_OVERDUE] ===== CALLBACK RECEIVED =====")
+        logger.info(f"[TASKS_OVERDUE] Getting overdue tasks for user_id: {user_id}, telegram_user_id: {telegram_user_id}")
         tasks = get_overdue_tasks(user_id)
-        logger.info(f"[TASKS_OVERDUE] Found {len(tasks)} overdue tasks")
+        logger.info(f"[TASKS_OVERDUE] Found {len(tasks)} overdue tasks after filtering")
         
         if not tasks:
             await query.edit_message_text(
@@ -2079,15 +2081,23 @@ async def periodic_check(context: ContextTypes.DEFAULT_TYPE):
         # Обрабатываем очередь уведомлений из Firebase (от веб-приложения)
         try:
             pending_notifications = get_pending_notifications(limit=20)
-            logger.info(f"[PERIODIC] Processing {len(pending_notifications)} pending notifications from queue")
+            logger.info(f"[PERIODIC] ===== PROCESSING NOTIFICATION QUEUE =====")
+            logger.info(f"[PERIODIC] Found {len(pending_notifications)} pending notifications from queue")
+            
+            if pending_notifications:
+                logger.info(f"[PERIODIC] First notification sample: {pending_notifications[0]}")
             
             for notification_task in pending_notifications:
                 task_id = notification_task.get('id')
                 chat_id = notification_task.get('chatId')
                 message = notification_task.get('message')
+                notification_type = notification_task.get('type', 'unknown')
+                user_id = notification_task.get('userId', 'unknown')
+                
+                logger.info(f"[PERIODIC] Processing notification {task_id}: type={notification_type}, userId={user_id}, chatId={chat_id}")
                 
                 if not chat_id or not message:
-                    logger.warning(f"[PERIODIC] Invalid notification task {task_id}: missing chatId or message")
+                    logger.warning(f"[PERIODIC] ❌ Invalid notification task {task_id}: missing chatId ({chat_id}) or message ({bool(message)})")
                     mark_notification_sent(task_id, success=False, error="Missing chatId or message")
                     continue
                 
@@ -2098,11 +2108,12 @@ async def periodic_check(context: ContextTypes.DEFAULT_TYPE):
                         parse_mode='HTML'
                     )
                     mark_notification_sent(task_id, success=True)
-                    logger.info(f"[PERIODIC] Sent notification {task_id} to {chat_id}")
+                    logger.info(f"[PERIODIC] ✅ Successfully sent notification {task_id} to chat {chat_id}")
                 except Exception as e:
                     error_msg = str(e)
                     mark_notification_sent(task_id, success=False, error=error_msg)
-                    logger.error(f"[PERIODIC] Error sending notification {task_id}: {e}", exc_info=True)
+                    logger.error(f"[PERIODIC] ❌ Error sending notification {task_id} to {chat_id}: {e}", exc_info=True)
+                    logger.error(f"[PERIODIC] Error details: {error_msg}")
             
             # Очищаем старые уведомления (раз в час, проверяем случайно)
             import random

@@ -78,16 +78,19 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({
 
   // Filtered data
   const filteredClients = useMemo(() => {
-    const activeClients = clients.filter(c => !c.isArchived);
+    if (!clients || !Array.isArray(clients)) {
+      return [];
+    }
+    const activeClients = clients.filter(c => c && !c.isArchived);
     let filtered = activeClients;
     
     if (selectedFunnelId) {
-      filtered = filtered.filter(c => c.funnelId === selectedFunnelId);
+      filtered = filtered.filter(c => c && c.funnelId === selectedFunnelId);
     }
     
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(c => c.name.toLowerCase().includes(query));
+      filtered = filtered.filter(c => c && c.name && c.name.toLowerCase().includes(query));
     }
     
     return filtered;
@@ -209,11 +212,9 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({
         {activeTab === 'clients' && (
           <ClientsTab
             clients={filteredClients}
+            contracts={contracts || []}
             onEditClient={handleEditClient}
-            onDeleteClient={onDeleteClient}
             onCreateContract={handleCreateContract}
-            onCreateOneTimeDeal={handleCreateOneTimeDeal}
-            onCreateReceivable={handleCreateReceivable}
           />
         )}
 

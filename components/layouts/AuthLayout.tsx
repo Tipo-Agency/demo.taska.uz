@@ -21,11 +21,11 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
 }) => {
   return (
     <SafeAreaAll
-      className={`min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#121212] ${className}`}
+      className={`min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#121212] px-4 ${className}`}
     >
-      <Container maxWidth="sm" padding className="w-full">
+      <div className="w-full max-w-md mx-auto">
         {children}
-      </Container>
+      </div>
     </SafeAreaAll>
   );
 };
