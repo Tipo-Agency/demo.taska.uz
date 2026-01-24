@@ -88,7 +88,7 @@ print(f"[BOT] Bot file path: {BOT_FILE_PATH}", flush=True)
 # Состояния для создания задачи из сообщения в группе
 (TASK_FROM_MESSAGE_TITLE, TASK_FROM_MESSAGE_DATE, TASK_FROM_MESSAGE_ASSIGNEE) = range(2, 5)
 # Состояние для ввода ID группового чата
-(SETTING_GROUP_CHAT_ID,) = range(5, 6)
+SETTING_GROUP_CHAT_ID = 5
 
 # Хранилище сессий пользователей (в продакшене использовать Redis)
 user_sessions = {}  # {telegram_user_id: {user_id: str, last_check: datetime}}
@@ -959,6 +959,356 @@ async def settings_notifications(update: Update, context: ContextTypes.DEFAULT_T
         message,
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
+
+@require_auth
+async def settings_notif_tasks(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Настройки уведомлений для задач"""
+    query = update.callback_query
+    await query.answer()
+    
+    notification_prefs = firebase.get_by_id('notificationPrefs', 'default')
+    if not notification_prefs:
+        notification_prefs = {'id': 'default'}
+    
+    # Получаем настройки задач (создаем дефолтные если нет)
+    new_task = notification_prefs.get('newTask', {'telegramPersonal': True, 'telegramGroup': False})
+    status_change = notification_prefs.get('statusChange', {'telegramPersonal': True, 'telegramGroup': False})
+    task_assigned = notification_prefs.get('taskAssigned', {'telegramPersonal': True, 'telegramGroup': False})
+    task_comment = notification_prefs.get('taskComment', {'telegramPersonal': True, 'telegramGroup': False})
+    task_deadline = notification_prefs.get('taskDeadline', {'telegramPersonal': True, 'telegramGroup': False})
+    
+    message = "📋 Уведомления о задачах\n\n"
+    message += f"📱 Новая задача: {'✅' if new_task.get('telegramPersonal') else '❌'}\n"
+    message += f"📱 Изменение статуса: {'✅' if status_change.get('telegramPersonal') else '❌'}\n"
+    message += f"📱 Назначение задачи: {'✅' if task_assigned.get('telegramPersonal') else '❌'}\n"
+    message += f"📱 Комментарий к задаче: {'✅' if task_comment.get('telegramPersonal') else '❌'}\n"
+    message += f"📱 Дедлайн задачи: {'✅' if task_deadline.get('telegramPersonal') else '❌'}\n"
+    message += "\nНажмите на уведомление, чтобы переключить его."
+    
+    keyboard = [
+        [InlineKeyboardButton(
+            f"{'✅' if new_task.get('telegramPersonal') else '❌'} Новая задача",
+            callback_data="settings_toggle_newTask"
+        )],
+        [InlineKeyboardButton(
+            f"{'✅' if status_change.get('telegramPersonal') else '❌'} Изменение статуса",
+            callback_data="settings_toggle_statusChange"
+        )],
+        [InlineKeyboardButton(
+            f"{'✅' if task_assigned.get('telegramPersonal') else '❌'} Назначение задачи",
+            callback_data="settings_toggle_taskAssigned"
+        )],
+        [InlineKeyboardButton(
+            f"{'✅' if task_comment.get('telegramPersonal') else '❌'} Комментарий",
+            callback_data="settings_toggle_taskComment"
+        )],
+        [InlineKeyboardButton(
+            f"{'✅' if task_deadline.get('telegramPersonal') else '❌'} Дедлайн",
+            callback_data="settings_toggle_taskDeadline"
+        )],
+        [InlineKeyboardButton("🔙 Назад", callback_data="settings_notifications")]
+    ]
+    
+    await query.edit_message_text(
+        message,
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+@require_auth
+async def settings_notif_crm(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Настройки уведомлений для CRM"""
+    query = update.callback_query
+    await query.answer()
+    
+    notification_prefs = firebase.get_by_id('notificationPrefs', 'default')
+    if not notification_prefs:
+        notification_prefs = {'id': 'default'}
+    
+    deal_created = notification_prefs.get('dealCreated', {'telegramPersonal': True, 'telegramGroup': False})
+    deal_status = notification_prefs.get('dealStatusChanged', {'telegramPersonal': True, 'telegramGroup': False})
+    client_created = notification_prefs.get('clientCreated', {'telegramPersonal': True, 'telegramGroup': False})
+    contract_created = notification_prefs.get('contractCreated', {'telegramPersonal': True, 'telegramGroup': False})
+    
+    message = "🎯 Уведомления CRM\n\n"
+    message += f"📱 Новая сделка: {'✅' if deal_created.get('telegramPersonal') else '❌'}\n"
+    message += f"📱 Изменение статуса сделки: {'✅' if deal_status.get('telegramPersonal') else '❌'}\n"
+    message += f"📱 Новый клиент: {'✅' if client_created.get('telegramPersonal') else '❌'}\n"
+    message += f"📱 Новый договор: {'✅' if contract_created.get('telegramPersonal') else '❌'}\n"
+    message += "\nНажмите на уведомление, чтобы переключить его."
+    
+    keyboard = [
+        [InlineKeyboardButton(
+            f"{'✅' if deal_created.get('telegramPersonal') else '❌'} Новая сделка",
+            callback_data="settings_toggle_dealCreated"
+        )],
+        [InlineKeyboardButton(
+            f"{'✅' if deal_status.get('telegramPersonal') else '❌'} Изменение статуса сделки",
+            callback_data="settings_toggle_dealStatusChanged"
+        )],
+        [InlineKeyboardButton(
+            f"{'✅' if client_created.get('telegramPersonal') else '❌'} Новый клиент",
+            callback_data="settings_toggle_clientCreated"
+        )],
+        [InlineKeyboardButton(
+            f"{'✅' if contract_created.get('telegramPersonal') else '❌'} Новый договор",
+            callback_data="settings_toggle_contractCreated"
+        )],
+        [InlineKeyboardButton("🔙 Назад", callback_data="settings_notifications")]
+    ]
+    
+    await query.edit_message_text(
+        message,
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+@require_auth
+async def settings_notif_docs(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Настройки уведомлений для документов"""
+    query = update.callback_query
+    await query.answer()
+    
+    notification_prefs = firebase.get_by_id('notificationPrefs', 'default')
+    if not notification_prefs:
+        notification_prefs = {'id': 'default'}
+    
+    doc_created = notification_prefs.get('docCreated', {'telegramPersonal': True, 'telegramGroup': False})
+    doc_updated = notification_prefs.get('docUpdated', {'telegramPersonal': True, 'telegramGroup': False})
+    doc_shared = notification_prefs.get('docShared', {'telegramPersonal': True, 'telegramGroup': False})
+    
+    message = "📄 Уведомления о документах\n\n"
+    message += f"📱 Создан документ: {'✅' if doc_created.get('telegramPersonal') else '❌'}\n"
+    message += f"📱 Обновлен документ: {'✅' if doc_updated.get('telegramPersonal') else '❌'}\n"
+    message += f"📱 Документ расшарен: {'✅' if doc_shared.get('telegramPersonal') else '❌'}\n"
+    message += "\nНажмите на уведомление, чтобы переключить его."
+    
+    keyboard = [
+        [InlineKeyboardButton(
+            f"{'✅' if doc_created.get('telegramPersonal') else '❌'} Создан документ",
+            callback_data="settings_toggle_docCreated"
+        )],
+        [InlineKeyboardButton(
+            f"{'✅' if doc_updated.get('telegramPersonal') else '❌'} Обновлен документ",
+            callback_data="settings_toggle_docUpdated"
+        )],
+        [InlineKeyboardButton(
+            f"{'✅' if doc_shared.get('telegramPersonal') else '❌'} Документ расшарен",
+            callback_data="settings_toggle_docShared"
+        )],
+        [InlineKeyboardButton("🔙 Назад", callback_data="settings_notifications")]
+    ]
+    
+    await query.edit_message_text(
+        message,
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+@require_auth
+async def settings_notif_meetings(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Настройки уведомлений для встреч"""
+    query = update.callback_query
+    await query.answer()
+    
+    notification_prefs = firebase.get_by_id('notificationPrefs', 'default')
+    if not notification_prefs:
+        notification_prefs = {'id': 'default'}
+    
+    meeting_created = notification_prefs.get('meetingCreated', {'telegramPersonal': True, 'telegramGroup': False})
+    meeting_reminder = notification_prefs.get('meetingReminder', {'telegramPersonal': True, 'telegramGroup': False})
+    meeting_updated = notification_prefs.get('meetingUpdated', {'telegramPersonal': True, 'telegramGroup': False})
+    
+    message = "📅 Уведомления о встречах\n\n"
+    message += f"📱 Создана встреча: {'✅' if meeting_created.get('telegramPersonal') else '❌'}\n"
+    message += f"📱 Напоминание о встрече: {'✅' if meeting_reminder.get('telegramPersonal') else '❌'}\n"
+    message += f"📱 Обновлена встреча: {'✅' if meeting_updated.get('telegramPersonal') else '❌'}\n"
+    message += "\nНажмите на уведомление, чтобы переключить его."
+    
+    keyboard = [
+        [InlineKeyboardButton(
+            f"{'✅' if meeting_created.get('telegramPersonal') else '❌'} Создана встреча",
+            callback_data="settings_toggle_meetingCreated"
+        )],
+        [InlineKeyboardButton(
+            f"{'✅' if meeting_reminder.get('telegramPersonal') else '❌'} Напоминание",
+            callback_data="settings_toggle_meetingReminder"
+        )],
+        [InlineKeyboardButton(
+            f"{'✅' if meeting_updated.get('telegramPersonal') else '❌'} Обновлена встреча",
+            callback_data="settings_toggle_meetingUpdated"
+        )],
+        [InlineKeyboardButton("🔙 Назад", callback_data="settings_notifications")]
+    ]
+    
+    await query.edit_message_text(
+        message,
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+@require_auth
+async def settings_notif_finance(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Настройки уведомлений для финансов"""
+    query = update.callback_query
+    await query.answer()
+    
+    notification_prefs = firebase.get_by_id('notificationPrefs', 'default')
+    if not notification_prefs:
+        notification_prefs = {'id': 'default'}
+    
+    purchase_request = notification_prefs.get('purchaseRequestCreated', {'telegramPersonal': True, 'telegramGroup': False})
+    purchase_status = notification_prefs.get('purchaseRequestStatusChanged', {'telegramPersonal': True, 'telegramGroup': False})
+    finance_plan = notification_prefs.get('financePlanUpdated', {'telegramPersonal': True, 'telegramGroup': False})
+    
+    message = "💰 Уведомления о финансах\n\n"
+    message += f"📱 Новая заявка на покупку: {'✅' if purchase_request.get('telegramPersonal') else '❌'}\n"
+    message += f"📱 Изменение статуса заявки: {'✅' if purchase_status.get('telegramPersonal') else '❌'}\n"
+    message += f"📱 Обновлен финансовый план: {'✅' if finance_plan.get('telegramPersonal') else '❌'}\n"
+    message += "\nНажмите на уведомление, чтобы переключить его."
+    
+    keyboard = [
+        [InlineKeyboardButton(
+            f"{'✅' if purchase_request.get('telegramPersonal') else '❌'} Новая заявка",
+            callback_data="settings_toggle_purchaseRequestCreated"
+        )],
+        [InlineKeyboardButton(
+            f"{'✅' if purchase_status.get('telegramPersonal') else '❌'} Изменение статуса",
+            callback_data="settings_toggle_purchaseRequestStatusChanged"
+        )],
+        [InlineKeyboardButton(
+            f"{'✅' if finance_plan.get('telegramPersonal') else '❌'} Обновлен план",
+            callback_data="settings_toggle_financePlanUpdated"
+        )],
+        [InlineKeyboardButton("🔙 Назад", callback_data="settings_notifications")]
+    ]
+    
+    await query.edit_message_text(
+        message,
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+@require_auth
+async def settings_notif_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Настройки группового чата"""
+    query = update.callback_query
+    await query.answer()
+    
+    notification_prefs = firebase.get_by_id('notificationPrefs', 'default')
+    if not notification_prefs:
+        notification_prefs = {'id': 'default'}
+    
+    telegram_group_chat_id = notification_prefs.get('telegramGroupChatId', '')
+    
+    message = "👥 Настройки группового чата\n\n"
+    message += f"💬 ID группового чата: {telegram_group_chat_id if telegram_group_chat_id else 'Не настроен'}\n\n"
+    message += "Для получения ID группового чата:\n"
+    message += "1. Добавьте бота в группу\n"
+    message += "2. Отправьте любое сообщение в группу\n"
+    message += "3. Используйте команду /group_id в группе\n"
+    message += "4. Скопируйте ID и введите его здесь"
+    
+    keyboard = [
+        [InlineKeyboardButton("📝 Ввести ID группового чата", callback_data="settings_group_set_chat_id")],
+        [InlineKeyboardButton("🔙 Назад", callback_data="settings_notifications")]
+    ]
+    
+    await query.edit_message_text(
+        message,
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+@require_auth
+async def settings_group_set_chat_id_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Начало ввода ID группового чата"""
+    query = update.callback_query
+    await query.answer()
+    
+    await query.edit_message_text(
+        "📝 Введите ID группового чата:\n\n"
+        "ID можно получить, отправив команду /group_id в группе, где находится бот.",
+        reply_markup=get_back_button("settings_notif_group")
+    )
+    
+    return SETTING_GROUP_CHAT_ID
+
+@require_auth
+async def settings_group_set_chat_id_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработка ввода ID группового чата"""
+    try:
+        chat_id = update.message.text.strip()
+        
+        # Валидация ID (должен быть числом или строкой, начинающейся с -)
+        if not chat_id:
+            await update.message.reply_text("❌ ID не может быть пустым. Попробуйте еще раз:")
+            return SETTING_GROUP_CHAT_ID
+        
+        # Сохраняем ID
+        notification_prefs = firebase.get_by_id('notificationPrefs', 'default')
+        if not notification_prefs:
+            notification_prefs = {'id': 'default'}
+        
+        notification_prefs['telegramGroupChatId'] = chat_id
+        firebase.save('notificationPrefs', notification_prefs)
+        
+        await update.message.reply_text(
+            f"✅ ID группового чата сохранен: {chat_id}",
+            reply_markup=get_settings_menu()
+        )
+        
+        return ConversationHandler.END
+        
+    except Exception as e:
+        logger.error(f"Error setting group chat ID: {e}", exc_info=True)
+        await update.message.reply_text("❌ Произошла ошибка. Попробуйте еще раз.")
+        return ConversationHandler.END
+
+@require_auth
+async def settings_toggle_notification(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Переключение настройки уведомления"""
+    query = update.callback_query
+    await query.answer()
+    
+    # Получаем название настройки из callback_data
+    setting_name = query.data.replace("settings_toggle_", "")
+    
+    notification_prefs = firebase.get_by_id('notificationPrefs', 'default')
+    if not notification_prefs:
+        notification_prefs = {'id': 'default'}
+    
+    # Получаем текущую настройку
+    current_setting = notification_prefs.get(setting_name, {'telegramPersonal': True, 'telegramGroup': False})
+    
+    # Переключаем личные уведомления
+    current_setting['telegramPersonal'] = not current_setting.get('telegramPersonal', True)
+    
+    # Обновляем настройки
+    notification_prefs[setting_name] = current_setting
+    notification_prefs['id'] = 'default'
+    firebase.save('notificationPrefs', notification_prefs)
+    
+    # Определяем, в какую категорию вернуться
+    category = "settings_notifications"
+    if setting_name.startswith('newTask') or setting_name.startswith('statusChange') or setting_name.startswith('task'):
+        category = "settings_notif_tasks"
+    elif setting_name.startswith('doc'):
+        category = "settings_notif_docs"
+    elif setting_name.startswith('meeting'):
+        category = "settings_notif_meetings"
+    elif setting_name.startswith('deal') or setting_name.startswith('client') or setting_name.startswith('contract'):
+        category = "settings_notif_crm"
+    elif setting_name.startswith('purchase') or setting_name.startswith('finance'):
+        category = "settings_notif_finance"
+    
+    # Возвращаемся в соответствующую категорию
+    if category == "settings_notif_tasks":
+        await settings_notif_tasks(update, context)
+    elif category == "settings_notif_docs":
+        await settings_notif_docs(update, context)
+    elif category == "settings_notif_meetings":
+        await settings_notif_meetings(update, context)
+    elif category == "settings_notif_crm":
+        await settings_notif_crm(update, context)
+    elif category == "settings_notif_finance":
+        await settings_notif_finance(update, context)
+    else:
+        await settings_notifications(update, context)
 
 @require_auth
 async def menu_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
