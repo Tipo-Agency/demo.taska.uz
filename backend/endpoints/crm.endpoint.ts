@@ -1,4 +1,4 @@
-import { firestoreService } from "../../services/firestoreService";
+import { localStoreService } from "../../services/localStoreService";
 import { Client, Deal, EmployeeInfo, AccountsReceivable, SalesFunnel, NotificationPreferences } from "../../types";
 
 const CLIENTS_COLLECTION = 'clients';
@@ -30,14 +30,14 @@ const isWebsiteLead = (item: any): item is WebsiteLead => {
 // Преобразование заявки с сайта в Deal
 const convertWebsiteLeadToDeal = async (lead: WebsiteLead): Promise<Deal> => {
   // Получаем основную воронку из настроек напрямую из Firestore
-  const notificationPrefsItems = await firestoreService.getAll('notificationPrefs');
+  const notificationPrefsItems = await localStoreService.getAll('notificationPrefs');
   const notificationPrefs = notificationPrefsItems.length > 0 
     ? (notificationPrefsItems[0] as NotificationPreferences)
     : null;
   const defaultFunnelId = notificationPrefs?.defaultFunnelId;
   
   // Получаем воронки для определения первого этапа напрямую из Firestore
-  const funnels = await firestoreService.getAll('salesFunnels') as SalesFunnel[];
+  const funnels = await localStoreService.getAll('salesFunnels') as SalesFunnel[];
   const defaultFunnel = defaultFunnelId ? funnels.find(f => f.id === defaultFunnelId) : null;
   const firstFunnel = funnels.length > 0 ? funnels[0] : null;
   const targetFunnel = defaultFunnel || firstFunnel;
@@ -85,14 +85,14 @@ const convertWebsiteLeadToDeal = async (lead: WebsiteLead): Promise<Deal> => {
 // saveCollection теперь сохраняет все элементы, включая архивные (soft delete)
 const saveCollection = async (collectionName: string, items: Array<{ id: string; isArchived?: boolean }>) => {
     // Сохраняем все элементы, включая архивные (soft delete)
-    await Promise.all(items.map(item => firestoreService.save(collectionName, item)));
+    await Promise.all(items.map(item => localStoreService.save(collectionName, item)));
     // Удаление физически должно происходить только при "permanentDelete"
     // В данном случае, saveCollection не должен физически удалять, а только сохранять текущее состояние
 };
 
 export const clientsEndpoint = {
     getAll: async (): Promise<Client[]> => {
-        const items = await firestoreService.getAll(CLIENTS_COLLECTION);
+        const items = await localStoreService.getAll(CLIENTS_COLLECTION);
         // Не фильтруем архивные элементы - фильтрация происходит на уровне компонентов
         return items as Client[];
     },
@@ -102,7 +102,7 @@ export const clientsEndpoint = {
 // Объединенный endpoint для договоров и продаж
 export const dealsEndpoint = {
     getAll: async (): Promise<Deal[]> => {
-        const items = await firestoreService.getAll(DEALS_COLLECTION);
+        const items = await localStoreService.getAll(DEALS_COLLECTION);
         // Не фильтруем архивные элементы - фильтрация происходит на уровне компонентов
         
         // Преобразуем заявки с сайта в формат Deal
@@ -142,7 +142,7 @@ export const oneTimeDealsEndpoint = dealsEndpoint;
 
 export const employeesEndpoint = {
     getAll: async (): Promise<EmployeeInfo[]> => {
-        const items = await firestoreService.getAll(EMPLOYEES_COLLECTION);
+        const items = await localStoreService.getAll(EMPLOYEES_COLLECTION);
         // Не фильтруем архивные элементы - фильтрация происходит на уровне компонентов
         return items as EmployeeInfo[];
     },
@@ -151,7 +151,7 @@ export const employeesEndpoint = {
 
 export const accountsReceivableEndpoint = {
     getAll: async (): Promise<AccountsReceivable[]> => {
-        const items = await firestoreService.getAll(ACCOUNTS_RECEIVABLE_COLLECTION);
+        const items = await localStoreService.getAll(ACCOUNTS_RECEIVABLE_COLLECTION);
         // Не фильтруем архивные элементы - фильтрация происходит на уровне компонентов
         return items as AccountsReceivable[];
     },

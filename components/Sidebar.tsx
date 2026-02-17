@@ -32,7 +32,7 @@ interface SidebarProps {
   tables: TableCollection[];
   activeTableId: string;
   onSelectTable: (id: string) => void;
-  onNavigate: (view: 'home' | 'tasks' | 'inbox' | 'search' | 'clients' | 'employees' | 'sales-funnel' | 'finance' | 'business-processes' | 'analytics' | 'settings' | 'sites') => void;
+  onNavigate: (view: 'home' | 'tasks' | 'inbox' | 'search' | 'clients' | 'employees' | 'sales-funnel' | 'finance' | 'business-processes' | 'analytics' | 'settings' | 'sites' | 'inventory') => void;
   currentView: string;
   currentUser: User;
   onCreateTable: () => void;
@@ -115,7 +115,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} hover:bg-notion-hover dark:hover:bg-[#252525] rounded cursor-pointer transition-colors p-2 ${isCollapsed ? 'w-full' : 'flex-1'}`}
             >
                 <LogoIcon className="w-6 h-6 shrink-0" />
-                {!isCollapsed && <span className="font-semibold text-sm">Типа задачи</span>}
+                {!isCollapsed && <span className="font-semibold text-sm">taska.uz</span>}
             </div>
             {!isCollapsed && (
               <div className="flex items-center gap-1 shrink-0">
@@ -163,6 +163,15 @@ const Sidebar: React.FC<SidebarProps> = ({
                 title={isCollapsed ? "Клиенты и договора" : ""}
             >
                 <Briefcase size={18} /> {!isCollapsed && <span className="text-sm">Клиенты и договора</span>}
+            </div>
+
+            {/* 3.2. Склад */}
+            <div 
+                onClick={() => handleNav(() => onNavigate('inventory'))}
+                className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-2'} ${isCollapsed ? 'px-2' : 'px-3'} py-1.5 rounded cursor-pointer transition-colors ${currentView === 'inventory' ? 'bg-notion-hover dark:bg-[#252525] text-notion-text dark:text-white font-medium' : 'text-notion-text/70 dark:text-gray-400 hover:bg-notion-hover dark:hover:bg-[#252525] hover:text-notion-text dark:hover:text-gray-200'}`}
+                title={isCollapsed ? "Склад" : ""}
+            >
+                <Layers size={18} /> {!isCollapsed && <span className="text-sm">Склад</span>}
             </div>
 
             {/* 4. Финансовое планирование */}

@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Task, Project, StatusOption, PriorityOption, User, TaskComment, TaskAttachment, AutomationRule, Doc } from '../../../types';
 import { api } from '../../../backend/api';
-import { uploadTaskAttachment } from '../../../services/firebaseStorage';
+import { uploadTaskAttachment } from '../../../services/localStorageService';
 import { getTodayLocalDate, getDateDaysFromNow } from '../../../utils/dateUtils';
 import { notifyTaskCreated, notifyTaskStatusChanged, NotificationContext } from '../../../services/notificationService';
 
@@ -254,17 +254,15 @@ export const useTaskLogic = (showNotification: (msg: string) => void, currentUse
       try {
           showNotification('Загрузка файла...');
           
-          // Загружаем файл в Firebase Storage
           const uploadResult = await uploadTaskAttachment(file, taskId);
           
           const attachmentId = `att-${Date.now()}`;
           
-          // Создаем вложение с URL из Firebase Storage
           const attachment: TaskAttachment = {
               id: attachmentId,
               taskId,
               name: file.name,
-              url: uploadResult.url, // URL из Firebase Storage
+              url: uploadResult.url,
               type: file.type.split('/')[0] || 'file',
               uploadedAt: new Date().toISOString(),
               attachmentType: 'file',

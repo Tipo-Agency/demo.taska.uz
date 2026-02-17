@@ -303,7 +303,7 @@ export interface TaskAttachment {
     uploadedAt: string;
     docId?: string; // Если вложение - это документ из модуля документов
     attachmentType?: 'file' | 'doc'; // Тип вложения: файл или документ
-    storagePath?: string; // Путь в Firebase Storage для файлов
+    storagePath?: string; // Путь к файлу (локально или URL)
 }
 
 export type EntityType = 'task' | 'idea' | 'feature' | 'purchase_request';
@@ -531,6 +531,7 @@ export interface Warehouse {
   departmentId?: string;
   location?: string;
   isDefault?: boolean;
+  isArchived?: boolean;
 }
 
 export interface InventoryItem {
@@ -540,6 +541,27 @@ export interface InventoryItem {
   unit: string;
   category?: string;
   notes?: string;
+  isArchived?: boolean;
+}
+
+/** Строка ревизии: номенклатура, учётный и фактический остаток */
+export interface InventoryRevisionLine {
+  itemId: string;
+  quantitySystem: number;
+  quantityFact: number;
+}
+
+/** Ревизия (инвентаризация) на складе */
+export interface InventoryRevision {
+  id: string;
+  number: string;
+  warehouseId: string;
+  date: string;
+  status: 'draft' | 'posted';
+  lines: InventoryRevisionLine[];
+  reason?: string;
+  createdByUserId: string;
+  postedAt?: string;
 }
 
 export type StockMovementType = 'receipt' | 'transfer' | 'writeoff' | 'adjustment';
@@ -619,7 +641,7 @@ export interface Tag {
 export interface PartnerLogo {
   id: string;
   name: string; // Название партнера
-  logoUrl: string; // URL логотипа в Firebase Storage
+  logoUrl: string; // URL логотипа
   websiteUrl?: string; // Ссылка на сайт партнера
   order: number; // Порядок отображения
   createdAt: string;

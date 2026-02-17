@@ -5,7 +5,7 @@ import {
   Deal, Client, Contract, EmployeeInfo, Meeting, ContentPost, 
   Doc, Folder, TableCollection, Department, FinanceCategory, 
   FinancePlan, PurchaseRequest, FinancialPlanDocument, FinancialPlanning, OrgPosition, BusinessProcess, SalesFunnel, 
-  ViewMode, AutomationRule, Warehouse, InventoryItem, StockBalance, StockMovement, OneTimeDeal, AccountsReceivable,
+  ViewMode, AutomationRule, Warehouse, InventoryItem, StockBalance, StockMovement, InventoryRevision, OneTimeDeal, AccountsReceivable,
   NotificationPreferences
 } from '../types';
 
@@ -28,6 +28,7 @@ import { HRModule } from './modules/HRModule';
 import { MeetingsModule } from './modules/MeetingsModule';
 import { DocumentsModule } from './modules/DocumentsModule';
 import { SitesView } from './sites/SitesView';
+import InventoryView from './InventoryView';
 
 interface AppRouterProps {
   currentView: string;
@@ -64,6 +65,7 @@ interface AppRouterProps {
   inventoryItems: InventoryItem[];
   inventoryBalances: StockBalance[];
   inventoryMovements: StockMovement[];
+  inventoryRevisions?: InventoryRevision[];
   orgPositions: OrgPosition[];
   businessProcesses: BusinessProcess[];
   automationRules?: AutomationRule[];
@@ -329,6 +331,28 @@ export const AppRouter: React.FC<AppRouterProps> = (props) => {
 
   if (view === 'sites') {
       return <SitesView currentUser={props.currentUser} />;
+  }
+
+  if (view === 'inventory') {
+      return (
+          <InventoryView
+              departments={props.departments}
+              warehouses={props.warehouses}
+              items={props.inventoryItems}
+              balances={props.inventoryBalances}
+              movements={props.inventoryMovements}
+              revisions={props.inventoryRevisions || []}
+              currentUserId={props.currentUser?.id || ''}
+              onSaveWarehouse={actions.saveWarehouse}
+              onDeleteWarehouse={actions.deleteWarehouse}
+              onSaveItem={actions.saveInventoryItem}
+              onDeleteItem={actions.deleteInventoryItem}
+              onCreateMovement={actions.createInventoryMovement}
+              onCreateRevision={actions.createInventoryRevision}
+              onUpdateRevision={actions.updateInventoryRevision}
+              onPostRevision={actions.postInventoryRevision}
+          />
+      );
   }
 
   // Fallback: если ничего не подошло, показываем home

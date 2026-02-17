@@ -12,7 +12,7 @@ export const useSettingsLogic = (showNotification: (msg: string) => void) => {
   const [automationRules, setAutomationRules] = useState<AutomationRule[]>([]);
   
   // UI Global State
-  const [currentView, setCurrentView] = useState<'home' | 'tasks' | 'inbox' | 'search' | 'table' | 'doc-editor' | 'clients' | 'employees' | 'sales-funnel' | 'finance' | 'business-processes' | 'analytics' | 'settings' | 'spaces' | 'meetings' | 'docs'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'tasks' | 'inbox' | 'search' | 'table' | 'doc-editor' | 'clients' | 'employees' | 'sales-funnel' | 'finance' | 'business-processes' | 'analytics' | 'settings' | 'spaces' | 'meetings' | 'docs' | 'inventory' | 'sites'>('home');
   const [activeTableId, setActiveTableId] = useState<string>('');
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.TABLE);
   const [searchQuery, setSearchQuery] = useState('');
@@ -107,7 +107,7 @@ export const useSettingsLogic = (showNotification: (msg: string) => void) => {
       const u = activityLogs.map(l => ({ ...l, read: true })); setActivityLogs(u); api.activity.updateAll(u);
   };
 
-  const handleNavigate = (view: 'home' | 'tasks' | 'inbox' | 'search' | 'clients' | 'employees' | 'sales-funnel' | 'finance' | 'business-processes' | 'analytics' | 'spaces' | 'meetings' | 'docs') => {
+  const handleNavigate = (view: 'home' | 'tasks' | 'inbox' | 'search' | 'clients' | 'employees' | 'sales-funnel' | 'finance' | 'business-processes' | 'analytics' | 'spaces' | 'meetings' | 'docs' | 'inventory' | 'sites') => {
       setCurrentView(view); setActiveTableId('');
   };
 

@@ -1,14 +1,8 @@
 
 import { Project, Role, TableCollection, Task, User, Doc, StatusOption, PriorityOption, NotificationPreferences, Department, FinanceCategory, OrgPosition, AutomationRule } from "./types";
 
-// URL Firebase и токен бота теперь читаем из окружения, чтобы ты мог использовать свой проект.
-// В .env.local можно задать:
-// VITE_FIREBASE_DB_URL=...
-// ВАЖНО: Токен бота теперь берется только из GitHub Secrets (через .env на сервере)
-// В браузере токен устанавливается в настройках системы (localStorage)
-// НЕ используем VITE_TELEGRAM_BOT_TOKEN - это только для сервера
-// export const TELEGRAM_BOT_TOKEN = (import.meta as any).env?.VITE_TELEGRAM_BOT_TOKEN || '';
-export const FIREBASE_DB_URL: string = (import.meta as any).env?.VITE_FIREBASE_DB_URL || '';
+// Демо: всё работает локально (localStorage)
+export const FIREBASE_DB_URL: string = '';
 
 export const TELEGRAM_CHAT_ID = '-1002719375477'; 
 

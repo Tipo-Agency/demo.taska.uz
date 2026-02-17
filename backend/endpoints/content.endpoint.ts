@@ -1,4 +1,4 @@
-import { firestoreService } from "../../services/firestoreService";
+import { localStoreService } from "../../services/localStoreService";
 import { Doc, Folder, Meeting, ContentPost } from "../../types";
 
 const DOCS_COLLECTION = 'docs';
@@ -12,20 +12,20 @@ const filterArchived = <T extends { isArchived?: boolean }>(items: T[]): T[] => 
 
 const saveCollection = async (collectionName: string, items: Array<{ id: string; isArchived?: boolean }>) => {
     const activeItems = filterArchived(items);
-    await Promise.all(activeItems.map(item => firestoreService.save(collectionName, item)));
+    await Promise.all(activeItems.map(item => localStoreService.save(collectionName, item)));
     
-    const allItems = await firestoreService.getAll(collectionName);
+    const allItems = await localStoreService.getAll(collectionName);
     const archivedIds = new Set(items.filter(item => item.isArchived).map(item => item.id));
     await Promise.all(
         allItems
             .filter(item => archivedIds.has(item.id))
-            .map(item => firestoreService.delete(collectionName, item.id))
+            .map(item => localStoreService.delete(collectionName, item.id))
     );
 };
 
 export const docsEndpoint = {
     getAll: async (): Promise<Doc[]> => {
-        const items = await firestoreService.getAll(DOCS_COLLECTION);
+        const items = await localStoreService.getAll(DOCS_COLLECTION);
         // Не фильтруем архивные элементы - фильтрация происходит на уровне компонентов
         return items as Doc[];
     },
@@ -34,7 +34,7 @@ export const docsEndpoint = {
 
 export const foldersEndpoint = {
     getAll: async (): Promise<Folder[]> => {
-        const items = await firestoreService.getAll(FOLDERS_COLLECTION);
+        const items = await localStoreService.getAll(FOLDERS_COLLECTION);
         return filterArchived(items) as Folder[];
     },
     updateAll: async (folders: Folder[]) => saveCollection(FOLDERS_COLLECTION, folders),
@@ -42,7 +42,7 @@ export const foldersEndpoint = {
 
 export const meetingsEndpoint = {
     getAll: async (): Promise<Meeting[]> => {
-        const items = await firestoreService.getAll(MEETINGS_COLLECTION);
+        const items = await localStoreService.getAll(MEETINGS_COLLECTION);
         return filterArchived(items) as Meeting[];
     },
     updateAll: async (meetings: Meeting[]) => saveCollection(MEETINGS_COLLECTION, meetings),
@@ -50,7 +50,7 @@ export const meetingsEndpoint = {
 
 export const contentPostsEndpoint = {
     getAll: async (): Promise<ContentPost[]> => {
-        const items = await firestoreService.getAll(CONTENT_POSTS_COLLECTION);
+        const items = await localStoreService.getAll(CONTENT_POSTS_COLLECTION);
         // Не фильтруем архивные элементы - фильтрация происходит на уровне компонентов
         return items as ContentPost[];
     },

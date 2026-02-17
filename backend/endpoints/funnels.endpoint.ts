@@ -1,18 +1,18 @@
-import { firestoreService } from "../../services/firestoreService";
+import { localStoreService } from "../../services/localStoreService";
 import { SalesFunnel } from "../../types";
 
 const COLLECTION_NAME = 'salesFunnels';
 
 export const funnelsEndpoint = {
     getAll: async (): Promise<SalesFunnel[]> => {
-        const items = await firestoreService.getAll(COLLECTION_NAME);
+        const items = await localStoreService.getAll(COLLECTION_NAME);
         // Не фильтруем архивные элементы - фильтрация происходит на уровне компонентов
         return items as SalesFunnel[];
     },
     
     updateAll: async (funnels: SalesFunnel[]): Promise<void> => {
         // Сохраняем все элементы, включая архивные (soft delete)
-        await Promise.all(funnels.map(funnel => firestoreService.save(COLLECTION_NAME, funnel)));
+        await Promise.all(funnels.map(funnel => localStoreService.save(COLLECTION_NAME, funnel)));
         // Удаление физически должно происходить только при "permanentDelete"
     },
     
@@ -23,12 +23,12 @@ export const funnelsEndpoint = {
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
         };
-        await firestoreService.save(COLLECTION_NAME, newFunnel);
+        await localStoreService.save(COLLECTION_NAME, newFunnel);
         return newFunnel;
     },
     
     update: async (id: string, updates: Partial<SalesFunnel>): Promise<SalesFunnel | null> => {
-        const existing = await firestoreService.getById(COLLECTION_NAME, id);
+        const existing = await localStoreService.getById(COLLECTION_NAME, id);
         if (!existing) return null;
         
         const updated: SalesFunnel = {
@@ -38,13 +38,13 @@ export const funnelsEndpoint = {
             updatedAt: new Date().toISOString(),
         } as SalesFunnel;
         
-        await firestoreService.save(COLLECTION_NAME, updated);
+        await localStoreService.save(COLLECTION_NAME, updated);
         return updated;
     },
     
     delete: async (id: string): Promise<boolean> => {
         // Мягкое удаление - помечаем как архивный
-        const existing = await firestoreService.getById(COLLECTION_NAME, id);
+        const existing = await localStoreService.getById(COLLECTION_NAME, id);
         if (!existing) return false;
         
         const archived: SalesFunnel = {
@@ -54,7 +54,7 @@ export const funnelsEndpoint = {
         } as SalesFunnel;
         
         // Удаляем из Firebase (мягкое удаление = физическое удаление из облака)
-        await firestoreService.delete(COLLECTION_NAME, id);
+        await localStoreService.delete(COLLECTION_NAME, id);
         return true;
     },
 };

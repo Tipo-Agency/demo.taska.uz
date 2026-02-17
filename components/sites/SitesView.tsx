@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { PartnerLogo, News, Case, Tag } from '../../types';
 import { api } from '../../backend/api';
-import { uploadFile } from '../../services/firebaseStorage';
+import { uploadFile } from '../../services/localStorageService';
 import { Plus, Edit2, Trash2, Image as ImageIcon, Globe, Tag as TagIcon, FileText, Briefcase, X, Check, Bold, Italic, Underline, Heading1, Heading2, List, ListOrdered, Quote, Monitor, Smartphone, Eye } from 'lucide-react';
 import { Card } from '../ui';
 

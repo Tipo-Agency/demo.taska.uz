@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from 'react';
-import { Department, Warehouse, InventoryItem, StockBalance, StockMovement } from '../types';
-import { Layers, PackageSearch, Plus } from 'lucide-react';
+import { Department, Warehouse, InventoryItem, StockBalance, StockMovement, InventoryRevision } from '../types';
+import { Layers, Plus } from 'lucide-react';
+
+const PRIMARY_COLOR = '#267022';
 
 interface InventoryViewProps {
   departments: Department[];
@@ -8,6 +10,7 @@ interface InventoryViewProps {
   items: InventoryItem[];
   balances: StockBalance[];
   movements: StockMovement[];
+  revisions: InventoryRevision[];
   currentUserId: string;
   onSaveWarehouse: (w: Warehouse) => void;
   onDeleteWarehouse: (id: string) => void;
@@ -21,6 +24,9 @@ interface InventoryViewProps {
     reason?: string;
     createdByUserId: string;
   }) => void;
+  onCreateRevision?: (payload: { warehouseId: string; date: string; createdByUserId: string; reason?: string }) => InventoryRevision;
+  onUpdateRevision?: (r: InventoryRevision) => void;
+  onPostRevision?: (revisionId: string, createdByUserId: string) => void;
 }
 
 const InventoryView: React.FC<InventoryViewProps> = ({
@@ -29,14 +35,18 @@ const InventoryView: React.FC<InventoryViewProps> = ({
   items,
   balances,
   movements,
+  revisions,
   currentUserId,
   onSaveWarehouse,
   onDeleteWarehouse,
   onSaveItem,
   onDeleteItem,
   onCreateMovement,
+  onCreateRevision,
+  onUpdateRevision,
+  onPostRevision,
 }) => {
-  const [activeTab, setActiveTab] = useState<'balances' | 'items' | 'movements'>('balances');
+  const [activeTab, setActiveTab] = useState<'balances' | 'items' | 'movements' | 'revisions'>('balances');
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>('');
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>('');
 
@@ -51,12 +61,15 @@ const InventoryView: React.FC<InventoryViewProps> = ({
   const [newItemNotes, setNewItemNotes] = useState('');
 
   // Form state: movement
-  const [movementType, setMovementType] = useState<'receipt' | 'transfer' | 'writeoff'>('receipt');
+  const [movementType, setMovementType] = useState<'receipt' | 'transfer' | 'writeoff' | 'adjustment'>('receipt');
   const [fromWarehouseId, setFromWarehouseId] = useState<string>('');
   const [toWarehouseId, setToWarehouseId] = useState<string>('');
   const [movementItemId, setMovementItemId] = useState<string>('');
   const [movementQty, setMovementQty] = useState<string>('');
   const [movementReason, setMovementReason] = useState<string>('');
+
+  // Revision: selected for edit
+  const [editingRevisionId, setEditingRevisionId] = useState<string | null>(null);
 
   const currentDepartment = departments.find(d => d.id === selectedDepartmentId) || null;
 
@@ -127,11 +140,15 @@ const InventoryView: React.FC<InventoryViewProps> = ({
 
   const handleCreateMovement = () => {
     const qty = Number(movementQty.replace(',', '.'));
-    if (!movementItemId || !qty || qty <= 0) {
+    if (!movementItemId || (movementType !== 'adjustment' && (!qty || qty <= 0))) {
       alert('Заполните номенклатуру и количество');
       return;
     }
-    if (movementType !== 'receipt' && !fromWarehouseId) {
+    if (movementType === 'adjustment' && qty === 0) {
+      alert('Для корректировки укажите ненулевое количество (положительное или отрицательное)');
+      return;
+    }
+    if (movementType !== 'receipt' && movementType !== 'adjustment' && !fromWarehouseId) {
       alert('Выберите склад-источник');
       return;
     }
@@ -139,19 +156,12 @@ const InventoryView: React.FC<InventoryViewProps> = ({
       alert('Выберите склад назначения');
       return;
     }
-    if (!onCreateMovement) {
-      console.error('onCreateMovement не определена');
-      return;
-    }
-    if (!currentUserId) {
-      alert('Пользователь не определен');
-      return;
-    }
+    if (!onCreateMovement || !currentUserId) return;
 
     onCreateMovement({
       type: movementType,
-      fromWarehouseId: movementType !== 'receipt' ? fromWarehouseId || undefined : undefined,
-      toWarehouseId: movementType !== 'writeoff' ? toWarehouseId || undefined : undefined,
+      fromWarehouseId: (movementType === 'transfer' || movementType === 'writeoff') ? fromWarehouseId || undefined : undefined,
+      toWarehouseId: (movementType === 'receipt' || movementType === 'transfer' || movementType === 'adjustment') ? toWarehouseId || undefined : undefined,
       items: [{ itemId: movementItemId, quantity: qty }],
       reason: movementReason || undefined,
       createdByUserId: currentUserId,
@@ -169,20 +179,21 @@ const InventoryView: React.FC<InventoryViewProps> = ({
         <div className="mb-6">
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-3">
-              <div className="bg-amber-100 dark:bg-amber-900/30 p-2 rounded-lg text-amber-600 dark:text-amber-400">
+              <div className="p-2 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${PRIMARY_COLOR}20`, color: PRIMARY_COLOR }}>
                 <Layers size={24} />
               </div>
               <div>
                 <h1 className="text-lg md:text-2xl font-bold text-gray-800 dark:text-white truncate">Склад</h1>
                 <p className="hidden md:block text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Управление складами, номенклатурой и движениями запасов
+                  Номенклатура, подразделения, перемещения, оприходования и ревизии
                 </p>
               </div>
             </div>
             {activeTab === 'items' && (
               <button
                 onClick={handleCreateItem}
-                className="px-4 py-2 rounded-lg bg-amber-600 text-white text-sm font-medium hover:bg-amber-700 flex items-center gap-2 shadow-sm"
+                className="px-4 py-2 rounded-lg text-white text-sm font-medium flex items-center gap-2 shadow-sm hover:opacity-90"
+                style={{ backgroundColor: PRIMARY_COLOR }}
               >
                 <Plus size={18} /> Создать
               </button>
@@ -224,6 +235,16 @@ const InventoryView: React.FC<InventoryViewProps> = ({
               }`}
             >
               Журнал
+            </button>
+            <button
+              onClick={() => setActiveTab('revisions')}
+              className={`px-3 py-1.5 rounded-full flex items-center gap-1 ${
+                activeTab === 'revisions'
+                  ? 'bg-white dark:bg-[#191919] text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-600 dark:text-gray-300'
+              }`}
+            >
+              Ревизии
             </button>
           </div>
 
@@ -274,7 +295,8 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                   className="border border-gray-200 dark:border-[#333] rounded-lg px-3 py-1.5 text-sm bg-white dark:bg-[#252525] text-gray-800 dark:text-gray-100"
                 />
                 <button
-                  className="px-3 py-1.5 rounded-lg bg-amber-600 text-white text-xs font-medium hover:bg-amber-700"
+                  className="px-3 py-1.5 rounded-lg text-white text-xs font-medium hover:opacity-90"
+                  style={{ backgroundColor: PRIMARY_COLOR }}
                   onClick={handleCreateWarehouse}
                 >
                   Добавить склад
@@ -348,7 +370,8 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                 className="border border-gray-200 dark:border-[#333] rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-[#252525] text-gray-800 dark:text-gray-100 flex-1"
               />
               <button
-                className="px-3 py-1.5 rounded-lg bg-amber-600 text-white text-xs font-medium hover:bg-amber-700"
+                className="px-3 py-1.5 rounded-lg text-white text-xs font-medium hover:opacity-90"
+                style={{ backgroundColor: PRIMARY_COLOR }}
                 onClick={handleCreateItem}
               >
                 Добавить
@@ -397,11 +420,12 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                 onChange={e => setMovementType(e.target.value as any)}
                 className="border border-gray-200 dark:border-[#333] rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-[#252525] text-gray-800 dark:text-gray-100"
               >
-                <option value="receipt">Поступление</option>
+                <option value="receipt">Оприходование</option>
                 <option value="transfer">Перемещение</option>
                 <option value="writeoff">Списание</option>
+                <option value="adjustment">Корректировка</option>
               </select>
-              {movementType !== 'receipt' && (
+              {movementType !== 'receipt' && movementType !== 'adjustment' && (
                 <select
                   value={fromWarehouseId}
                   onChange={e => setFromWarehouseId(e.target.value)}
@@ -444,7 +468,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
               <input
                 value={movementQty}
                 onChange={e => setMovementQty(e.target.value)}
-                placeholder="Кол-во"
+                placeholder={movementType === 'adjustment' ? '± Кол-во' : 'Кол-во'}
                 className="border border-gray-200 dark:border-[#333] rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-[#252525] text-gray-800 dark:text-gray-100 w-24"
               />
               <input
@@ -454,7 +478,8 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                 className="border border-gray-200 dark:border-[#333] rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-[#252525] text-gray-800 dark:text-gray-100 flex-1"
               />
               <button
-                className="px-3 py-1.5 rounded-lg bg-amber-600 text-white text-xs font-medium hover:bg-amber-700"
+                className="px-3 py-1.5 rounded-lg text-white text-xs font-medium hover:opacity-90"
+                style={{ backgroundColor: PRIMARY_COLOR }}
                 onClick={handleCreateMovement}
               >
                 Провести
@@ -490,7 +515,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                               {new Date(m.date).toLocaleDateString()}
                             </td>
                             <td className="px-4 py-2 text-gray-800 dark:text-gray-100">
-                              {m.type === 'receipt' && 'Поступление'}
+                              {m.type === 'receipt' && 'Оприходование'}
                               {m.type === 'transfer' && 'Перемещение'}
                               {m.type === 'writeoff' && 'Списание'}
                               {m.type === 'adjustment' && 'Корректировка'}
@@ -503,6 +528,146 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                       })}
                   </tbody>
                 </table>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'revisions' && (
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <div className="border-b border-gray-100 dark:border-[#333] px-4 py-3 flex flex-wrap items-center gap-3 shrink-0">
+              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Ревизии</span>
+              {onCreateRevision && (
+                <button
+                  className="px-3 py-1.5 rounded-lg text-white text-xs font-medium hover:opacity-90"
+                  style={{ backgroundColor: PRIMARY_COLOR }}
+                  onClick={() => {
+                    const whId = selectedWarehouseId || filteredWarehouses[0]?.id;
+                    if (!whId) { alert('Выберите склад'); return; }
+                    onCreateRevision({ warehouseId: whId, date: new Date().toISOString().slice(0, 10), createdByUserId: currentUserId });
+                  }}
+                >
+                  <Plus size={14} className="inline mr-1" /> Новая ревизия
+                </button>
+              )}
+            </div>
+            <div className="flex-1 overflow-auto custom-scrollbar min-h-0 p-4">
+              {revisions.length === 0 ? (
+                <div className="flex items-center justify-center text-gray-400 dark:text-gray-500 text-sm py-8">
+                  Ревизий нет. Создайте ревизию по кнопке выше (выберите склад в фильтре «Склад» на вкладке Остатки).
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {revisions.slice().reverse().map(rev => {
+                    const wh = warehouses.find(w => w.id === rev.warehouseId);
+                    const isDraft = rev.status === 'draft';
+                    const isEditing = editingRevisionId === rev.id;
+                    return (
+                      <div key={rev.id} className="border border-gray-200 dark:border-[#333] rounded-xl overflow-hidden bg-white dark:bg-[#252525]">
+                        <div className="px-4 py-2 bg-gray-50 dark:bg-[#2a2a2a] flex items-center justify-between flex-wrap gap-2">
+                          <span className="font-medium text-sm text-gray-800 dark:text-gray-100">{rev.number}</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">{wh?.name || rev.warehouseId} · {new Date(rev.date).toLocaleDateString()}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded ${rev.status === 'posted' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'}`}>
+                            {rev.status === 'posted' ? 'Проведена' : 'Черновик'}
+                          </span>
+                          {isDraft && onUpdateRevision && (
+                            <div className="flex items-center gap-2">
+                              <button
+                                className="text-xs text-gray-600 dark:text-gray-400 hover:underline"
+                                onClick={() => setEditingRevisionId(isEditing ? null : rev.id)}
+                              >
+                                {isEditing ? 'Свернуть' : 'Редактировать'}
+                              </button>
+                              <button
+                                className="px-2 py-1 rounded text-white text-xs"
+                                style={{ backgroundColor: PRIMARY_COLOR }}
+                                onClick={() => {
+                                  const whBalances = balances.filter(b => b.warehouseId === rev.warehouseId);
+                                  const lines = whBalances.map(b => ({ itemId: b.itemId, quantitySystem: b.quantity, quantityFact: b.quantity }));
+                                  onUpdateRevision({ ...rev, lines });
+                                }}
+                              >
+                                Подтянуть остатки
+                              </button>
+                              {onPostRevision && (
+                                <button
+                                  className="px-2 py-1 rounded bg-green-600 text-white text-xs hover:bg-green-700"
+                                  onClick={() => onPostRevision(rev.id, currentUserId)}
+                                >
+                                  Провести
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        {isEditing && isDraft && onUpdateRevision && (
+                          <div className="p-4 border-t border-gray-100 dark:border-[#333]">
+                            <table className="w-full text-xs">
+                              <thead>
+                                <tr className="text-gray-500 dark:text-gray-400">
+                                  <th className="text-left py-1">Номенклатура</th>
+                                  <th className="text-right w-24">Учёт</th>
+                                  <th className="text-right w-24">Факт</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {rev.lines.map((line, idx) => {
+                                  const item = items.find(i => i.id === line.itemId);
+                                  return (
+                                    <tr key={line.itemId} className="border-t border-gray-100 dark:border-[#333]">
+                                      <td className="py-1 text-gray-800 dark:text-gray-100">{item?.name || line.itemId}</td>
+                                      <td className="text-right text-gray-500 dark:text-gray-400">{line.quantitySystem}</td>
+                                      <td className="text-right">
+                                        <input
+                                          type="number"
+                                          value={line.quantityFact}
+                                          onChange={e => {
+                                            const next = [...rev.lines];
+                                            next[idx] = { ...line, quantityFact: Number(e.target.value) || 0 };
+                                            onUpdateRevision({ ...rev, lines: next });
+                                          }}
+                                          className="w-20 text-right border border-gray-200 dark:border-[#333] rounded px-1 py-0.5 bg-white dark:bg-[#252525]"
+                                        />
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                            {rev.lines.length === 0 && (
+                              <p className="text-gray-500 dark:text-gray-400 text-xs">Нажмите «Подтянуть остатки», чтобы заполнить таблицу по текущим остаткам склада.</p>
+                            )}
+                          </div>
+                        )}
+                        {!isEditing && rev.lines.length > 0 && (
+                          <div className="p-4 border-t border-gray-100 dark:border-[#333]">
+                            <table className="w-full text-xs">
+                              <thead>
+                                <tr className="text-gray-500 dark:text-gray-400">
+                                  <th className="text-left py-1">Номенклатура</th>
+                                  <th className="text-right w-24">Учёт</th>
+                                  <th className="text-right w-24">Факт</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {rev.lines.map(line => {
+                                  const item = items.find(i => i.id === line.itemId);
+                                  return (
+                                    <tr key={line.itemId} className="border-t border-gray-100 dark:border-[#333]">
+                                      <td className="py-1 text-gray-800 dark:text-gray-100">{item?.name || line.itemId}</td>
+                                      <td className="text-right text-gray-500 dark:text-gray-400">{line.quantitySystem}</td>
+                                      <td className="text-right text-gray-800 dark:text-gray-100">{line.quantityFact}</td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </div>
           </div>

@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { User, Role } from '../../types';
 import { hashPassword } from '../../utils/passwordHash';
 import { Camera, Save, AtSign, Mail, Phone, Send, KeyRound, Trash2, Plus, Lock, Upload } from 'lucide-react';
-import { uploadAvatar } from '../../services/firebaseStorage';
+import { uploadAvatar } from '../../services/localStorageService';
 
 interface ProfileSettingsProps {
   currentUser: User;

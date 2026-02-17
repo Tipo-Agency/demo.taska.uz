@@ -94,7 +94,7 @@ export function createDeleteHandler<T extends CrudItem & { isArchived?: boolean 
   return async (id: string) => {
     const now = new Date().toISOString();
     // Мягкое удаление: помечаем элемент как архивный вместо физического удаления
-    // Это решает проблему синхронизации - архивные элементы не возвращаются из Firebase
+    // Архивные элементы не возвращаются из хранилища
     setter(prevItems => {
       const updated = prevItems.map(item => {
         if (item.id === id) {
@@ -104,7 +104,7 @@ export function createDeleteHandler<T extends CrudItem & { isArchived?: boolean 
       });
       // Вызываем apiUpdate асинхронно, но не ждем его завершения для обновления UI
       Promise.resolve(apiUpdate(updated)).catch(err => {
-        console.error('Ошибка сохранения в Firebase:', err);
+        console.error('Ошибка сохранения:', err);
       });
       return updated;
     });

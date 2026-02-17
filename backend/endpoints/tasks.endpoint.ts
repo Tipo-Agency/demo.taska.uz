@@ -1,4 +1,4 @@
-import { firestoreService } from "../../services/firestoreService";
+import { localStoreService } from "../../services/localStoreService";
 import { Task, Project } from "../../types";
 import { getTodayLocalDate } from "../../utils/dateUtils";
 
@@ -24,7 +24,7 @@ const normalizeTask = (task: any): Task => {
 
 export const tasksEndpoint = {
     getAll: async (): Promise<Task[]> => {
-        const items = await firestoreService.getAll(TASKS_COLLECTION);
+        const items = await localStoreService.getAll(TASKS_COLLECTION);
         // Нормализуем задачи - убеждаемся, что у всех задач есть даты
         const normalizedTasks = items.map(normalizeTask);
         // Не фильтруем архивные задачи - фильтрация происходит на уровне компонентов
@@ -33,20 +33,20 @@ export const tasksEndpoint = {
     
     updateAll: async (tasks: Task[]): Promise<void> => {
         // Сохраняем все задачи (включая архивные) в Firebase
-        await Promise.all(tasks.map(task => firestoreService.save(TASKS_COLLECTION, task)));
+        await Promise.all(tasks.map(task => localStoreService.save(TASKS_COLLECTION, task)));
     },
 };
 
 export const projectsEndpoint = {
     getAll: async (): Promise<Project[]> => {
-        const items = await firestoreService.getAll(PROJECTS_COLLECTION);
+        const items = await localStoreService.getAll(PROJECTS_COLLECTION);
         // Не фильтруем архивные проекты - фильтрация происходит на уровне компонентов
         return items as Project[];
     },
     
     updateAll: async (projects: Project[]): Promise<void> => {
         // Сохраняем все проекты, включая архивные (soft delete)
-        await Promise.all(projects.map(project => firestoreService.save(PROJECTS_COLLECTION, project)));
+        await Promise.all(projects.map(project => localStoreService.save(PROJECTS_COLLECTION, project)));
         // Удаление физически должно происходить только при "permanentDelete"
     },
 };

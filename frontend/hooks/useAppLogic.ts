@@ -52,16 +52,9 @@ export const useAppLogic = () => {
   // Уровень 0: Загрузка данных для аутентификации (только users)
   const loadAuthData = async () => {
       try {
-          console.log('[Auth] Loading users from Firebase...');
           const users = await api.users.getAll();
-          console.log('[Auth] Users loaded:', users.length, users);
-          
           if (users.length === 0) {
-              console.warn('[Auth] WARNING: No users found in Firebase!');
-              console.warn('[Auth] This might be due to:');
-              console.warn('[Auth] 1. Firestore security rules blocking access');
-              console.warn('[Auth] 2. No users in the database');
-              console.warn('[Auth] 3. Firebase Auth not initialized');
+              console.warn('[Auth] No users in local store');
           }
           
           if (users.length !== authSlice.state.users.length || 
@@ -189,20 +182,22 @@ export const useAppLogic = () => {
 
   // Уровень 2: Загрузка данных модуля Inventory (lazy loading)
   const loadInventoryData = async () => {
-      if (loadedModulesRef.current.has('inventory')) return; // Уже загружено
-      const [warehouses, items, movements] = await Promise.all([
+      if (loadedModulesRef.current.has('inventory')) return;
+      const [warehouses, items, movements, revisions] = await Promise.all([
           api.inventory.getWarehouses(),
           api.inventory.getItems(),
           api.inventory.getMovements(),
+          api.inventory.getRevisions(),
       ]);
       inventorySlice.setters.setWarehouses(warehouses);
       inventorySlice.setters.setItems(items);
       inventorySlice.setters.setMovements(movements);
+      inventorySlice.setters.setRevisions(revisions);
       loadedModulesRef.current.add('inventory');
       setLoadedModules(new Set(loadedModulesRef.current));
   };
 
-  // Обновление данных модуля (перезагрузка из Firebase)
+  // Обновление данных модуля (перезагрузка из локального хранилища)
   const refreshModuleData = async (module: string) => {
       switch (module) {
           case 'tasks':
@@ -243,16 +238,15 @@ export const useAppLogic = () => {
         // Загружаем всегда, так как основные данные нужны для работы приложения
         await loadMainData();
       } catch (err) {
-        console.error('Ошибка загрузки данных из Firebase:', err);
-        showNotification('Ошибка загрузки данных. Проверьте подключение к интернету.');
+        console.error('Ошибка загрузки данных:', err);
+        showNotification('Ошибка загрузки данных.');
         setIsLoading(false);
       }
     };
     initApp();
   }, []);
 
-  // УБРАНО: Синхронизация больше не нужна, так как все данные в Firebase
-  // Данные загружаются по требованию и обновляются после каждого сохранения
+  // Данные хранятся локально, загружаются по требованию
 
   // Telegram polling для CRM модуля
   // ⚠️ ВАЖНО: ПОЛНОСТЬЮ ОТКЛЮЧЕНО для избежания конфликта 409
@@ -636,7 +630,7 @@ export const useAppLogic = () => {
       docs: contentSlice.state.docs, folders: contentSlice.state.folders, meetings: contentSlice.state.meetings, contentPosts: contentSlice.state.contentPosts, isDocModalOpen: contentSlice.state.isDocModalOpen, activeDocId: contentSlice.state.activeDocId, targetFolderId: contentSlice.state.targetFolderId, editingDoc: contentSlice.state.editingDoc,
       departments: financeSlice.state.departments, financeCategories: financeSlice.state.financeCategories, financePlan: financeSlice.state.financePlan, purchaseRequests: financeSlice.state.purchaseRequests, financialPlanDocuments: financeSlice.state.financialPlanDocuments, financialPlannings: financeSlice.state.financialPlannings,
       orgPositions: bpmSlice.state.orgPositions, businessProcesses: bpmSlice.state.businessProcesses,
-      warehouses: inventorySlice.state.warehouses, inventoryItems: inventorySlice.state.items, inventoryMovements: inventorySlice.state.movements, inventoryBalances: inventorySlice.state.balances,
+      warehouses: inventorySlice.state.warehouses, inventoryItems: inventorySlice.state.items, inventoryMovements: inventorySlice.state.movements, inventoryBalances: inventorySlice.state.balances, inventoryRevisions: inventorySlice.state.revisions,
       salesFunnels: salesFunnels,
       darkMode: settingsSlice.state.darkMode, tables: settingsSlice.state.tables, activityLogs: settingsSlice.state.activityLogs, currentView: settingsSlice.state.currentView, activeTableId: settingsSlice.state.activeTableId, viewMode: settingsSlice.state.viewMode, searchQuery: settingsSlice.state.searchQuery, settingsActiveTab: settingsSlice.state.settingsActiveTab, isCreateTableModalOpen: settingsSlice.state.isCreateTableModalOpen, createTableType: settingsSlice.state.createTableType, isEditTableModalOpen: settingsSlice.state.isEditTableModalOpen, editingTable: settingsSlice.state.editingTable, notificationPrefs: settingsSlice.state.notificationPrefs, automationRules: settingsSlice.state.automationRules, activeSpaceTab: settingsSlice.state.activeSpaceTab, telegramBotToken: storageService.getEmployeeBotToken() || '',
       activeTable: settingsSlice.state.tables.find(t => t.id === settingsSlice.state.activeTableId), activeDoc: contentSlice.state.docs.find(d => d.id === contentSlice.state.activeDocId)
@@ -743,7 +737,7 @@ export const useAppLogic = () => {
         }
       },
       deletePurchaseRequest: financeSlice.actions.deletePurchaseRequest, saveFinancialPlanDocument: financeSlice.actions.saveFinancialPlanDocument, deleteFinancialPlanDocument: financeSlice.actions.deleteFinancialPlanDocument, saveFinancialPlanning: financeSlice.actions.saveFinancialPlanning, deleteFinancialPlanning: financeSlice.actions.deleteFinancialPlanning,
-      saveWarehouse: inventorySlice.actions.saveWarehouse, deleteWarehouse: inventorySlice.actions.deleteWarehouse, saveInventoryItem: inventorySlice.actions.saveItem, deleteInventoryItem: inventorySlice.actions.deleteItem, createInventoryMovement: inventorySlice.actions.createMovement,
+      saveWarehouse: inventorySlice.actions.saveWarehouse, deleteWarehouse: inventorySlice.actions.deleteWarehouse, saveInventoryItem: inventorySlice.actions.saveItem, deleteInventoryItem: inventorySlice.actions.deleteItem, createInventoryMovement: inventorySlice.actions.createMovement, createInventoryRevision: inventorySlice.actions.createRevision, updateInventoryRevision: inventorySlice.actions.updateRevision, postInventoryRevision: inventorySlice.actions.postRevision,
       savePosition: bpmSlice.actions.savePosition, deletePosition: bpmSlice.actions.deletePosition, saveProcess: bpmSlice.actions.saveProcess, deleteProcess: bpmSlice.actions.deleteProcess,
       saveSalesFunnel: async (funnel: SalesFunnel) => {
           try {
@@ -759,7 +753,7 @@ export const useAppLogic = () => {
                   const { id, ...funnelWithoutId } = funnel;
                   await api.funnels.create(funnelWithoutId);
               }
-              // После сохранения загружаем обновленные данные из Firebase
+              // После сохранения перезагружаем данные из локального хранилища
               const funnels = await api.funnels.getAll();
               setSalesFunnels(funnels);
               showNotification('Воронка сохранена');
@@ -771,7 +765,7 @@ export const useAppLogic = () => {
       deleteSalesFunnel: async (id: string) => {
           try {
               await api.funnels.delete(id);
-              // После удаления загружаем обновленные данные из Firebase
+              // После удаления перезагружаем данные
               const funnels = await api.funnels.getAll();
               setSalesFunnels(funnels);
               showNotification('Воронка удалена');

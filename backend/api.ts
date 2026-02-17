@@ -11,9 +11,7 @@ import { inventoryEndpoint } from "./endpoints/inventory.endpoint";
 import { funnelsEndpoint } from "./endpoints/funnels.endpoint";
 import { partnerLogosEndpoint, newsEndpoint, casesEndpoint, tagsEndpoint, publicSitesEndpoint } from "./endpoints/sites.endpoint";
 
-// The Unified "Backend" Interface
-// ВАЖНО: Все данные загружаются напрямую из Firebase через endpoints
-// localStorage используется ТОЛЬКО для настроек сессии (activeUserId, tokens, darkMode)
+// The Unified "Backend" Interface — данные в localStorage (localStoreService)
 export const api = {
   users: authEndpoint,
   

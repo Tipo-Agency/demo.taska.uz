@@ -45,7 +45,7 @@ export const useAuthLogic = (showNotification: (msg: string) => void) => {
     // Фильтруем архивных пользователей перед установкой в state
     const activeUsers = usersWithTimestamp.filter(u => !u.isArchived);
     setUsers(activeUsers);
-    // Всегда сохраняем через API, чтобы изменения попали в Firebase (сохраняем всех, включая архивных)
+    // Сохраняем через API в локальное хранилище (всех, включая архивных)
     api.users.updateAll(usersWithTimestamp);
     // Refresh current user if data changed
     if (currentUser) {

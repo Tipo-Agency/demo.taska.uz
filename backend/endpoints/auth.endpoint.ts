@@ -1,29 +1,35 @@
-import { firestoreService } from "../../services/firestoreService";
-import { User } from "../../types";
+import { localStoreService } from "../../services/localStoreService";
+import { User, Role } from "../../types";
 
 const COLLECTION_NAME = 'users';
 
+const DEMO_USER: User = {
+    id: 'demo-user',
+    name: 'Демо',
+    role: Role.ADMIN,
+    login: 'demo',
+    password: '',
+};
+
 export const authEndpoint = {
     getAll: async (): Promise<User[]> => {
-        const items = await firestoreService.getAll(COLLECTION_NAME);
-        // Не фильтруем архивные элементы - фильтрация происходит на уровне компонентов
-        return items as User[];
+        let items = await localStoreService.getAll(COLLECTION_NAME) as User[];
+        if (items.length === 0) {
+            await localStoreService.save(COLLECTION_NAME, DEMO_USER);
+            items = [DEMO_USER];
+        }
+        return items;
     },
-    
+
     updateAll: async (users: User[]): Promise<void> => {
-        // Фильтруем архивные элементы перед сохранением
         const activeUsers = users.filter(u => !u.isArchived);
-        
-        // Сохраняем каждый элемент в Firebase
-        await Promise.all(activeUsers.map(user => firestoreService.save(COLLECTION_NAME, user)));
-        
-        // Удаляем архивные элементы из Firebase
-        const allItems = await firestoreService.getAll(COLLECTION_NAME);
+        await Promise.all(activeUsers.map(user => localStoreService.save(COLLECTION_NAME, user)));
+        const allItems = await localStoreService.getAll(COLLECTION_NAME);
         const archivedIds = new Set(users.filter(u => u.isArchived).map(u => u.id));
         await Promise.all(
             allItems
-                .filter(item => archivedIds.has(item.id))
-                .map(item => firestoreService.delete(COLLECTION_NAME, item.id))
+                .filter((item: User) => archivedIds.has(item.id))
+                .map((item: User) => localStoreService.delete(COLLECTION_NAME, item.id))
         );
     },
 };

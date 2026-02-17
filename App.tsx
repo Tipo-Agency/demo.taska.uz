@@ -14,12 +14,10 @@ import SettingsModal from './components/SettingsModal';
 import CreateTableModal from './components/CreateTableModal';
 import PublicContentPlanView from './components/PublicContentPlanView';
 import { useAppLogic } from './frontend/hooks/useAppLogic';
-import { initFirebaseAuth } from './services/firebaseAuth';
 
 const App = () => {
   const { state, actions } = useAppLogic();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [firebaseAuthReady, setFirebaseAuthReady] = useState(false);
   const [publicContentPlanId, setPublicContentPlanId] = useState<string | null>(null);
 
   // Telegram Web App initialization - ДОЛЖЕН БЫТЬ ДО ВСЕХ УСЛОВНЫХ RETURN!
@@ -34,19 +32,6 @@ const App = () => {
     }
   }, []);
 
-  // Firebase Auth initialization
-  useEffect(() => {
-    console.log('[App] Initializing Firebase Auth...');
-    initFirebaseAuth().then((user) => {
-      console.log('[App] Firebase Auth initialized, user:', user?.email || 'null');
-      setFirebaseAuthReady(true);
-    }).catch((error) => {
-      console.error('[App] Firebase Auth initialization error:', error);
-      // Firebase Auth initialization error - продолжаем работу
-      setFirebaseAuthReady(true); // Продолжаем работу даже при ошибке
-    });
-  }, []);
-  
   useEffect(() => {
     if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp) {
       const tg = (window as any).Telegram.WebApp;
@@ -70,7 +55,7 @@ const App = () => {
     return <PublicContentPlanView tableId={publicContentPlanId} />;
   }
 
-  if (state.isLoading || !firebaseAuthReady) return <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-[#121212] dark:text-white">Загрузка...</div>;
+  if (state.isLoading) return <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-[#121212] dark:text-white">Загрузка...</div>;
 
   if (!state.currentUser) {
       return <LoginPage users={state.users} onLogin={actions.login} />;
@@ -189,6 +174,7 @@ const App = () => {
                 inventoryItems={state.inventoryItems}
                 inventoryBalances={state.inventoryBalances}
                 inventoryMovements={state.inventoryMovements}
+                inventoryRevisions={state.inventoryRevisions}
                 orgPositions={state.orgPositions}
                 businessProcesses={state.businessProcesses}
                 salesFunnels={state.salesFunnels}

@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Warehouse, InventoryItem, StockMovement, StockMovementType, StockBalance } from '../../../types';
+import { Warehouse, InventoryItem, StockMovement, StockMovementType, StockBalance, InventoryRevision, InventoryRevisionLine } from '../../../types';
 import { api } from '../../../backend/api';
 
 export const useInventoryLogic = (showNotification: (msg: string) => void) => {
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [movements, setMovements] = useState<StockMovement[]>([]);
+  const [revisions, setRevisions] = useState<InventoryRevision[]>([]);
 
   const recalcBalances = (movs: StockMovement[]): StockBalance[] => {
       const balancesMap = new Map<string, number>(); // key: `${warehouseId}_${itemId}`
@@ -117,12 +118,69 @@ export const useInventoryLogic = (showNotification: (msg: string) => void) => {
       showNotification('Операция по складу создана');
   };
 
+  const saveRevisions = (next: InventoryRevision[]) => {
+      setRevisions(next);
+      api.inventory.updateRevisions(next);
+  };
+
+  const createRevision = (payload: { warehouseId: string; date: string; createdByUserId: string; reason?: string }) => {
+      const revNumbers = revisions.map(r => parseInt(r.number.replace(/\D/g, ''), 10)).filter(Boolean);
+      const nextNum = revNumbers.length ? Math.max(...revNumbers) + 1 : 1;
+      const number = `РЕВ-${String(nextNum).padStart(3, '0')}`;
+      const rev: InventoryRevision = {
+          id: `rev-${Date.now()}`,
+          number,
+          warehouseId: payload.warehouseId,
+          date: payload.date,
+          status: 'draft',
+          lines: [],
+          reason: payload.reason,
+          createdByUserId: payload.createdByUserId,
+      };
+      saveRevisions([...revisions, rev]);
+      showNotification('Ревизия создана');
+      return rev;
+  };
+
+  const updateRevision = (revision: InventoryRevision) => {
+      const updated = revisions.map(r => r.id === revision.id ? revision : r);
+      saveRevisions(updated);
+      showNotification('Ревизия сохранена');
+  };
+
+  const postRevision = (revisionId: string, createdByUserId: string) => {
+      const rev = revisions.find(r => r.id === revisionId);
+      if (!rev || rev.status === 'posted') return;
+      const date = rev.date;
+      const adjItems: { itemId: string; quantity: number }[] = [];
+      for (const line of rev.lines) {
+          const diff = line.quantityFact - line.quantitySystem;
+          if (diff !== 0) adjItems.push({ itemId: line.itemId, quantity: diff });
+      }
+      if (adjItems.length > 0) {
+          const movement: StockMovement = {
+              id: `mv-${Date.now()}`,
+              type: 'adjustment',
+              date: date,
+              toWarehouseId: rev.warehouseId,
+              items: adjItems,
+              reason: `Ревизия ${rev.number}`,
+              createdByUserId,
+          };
+          saveMovements([...movements, movement]);
+      }
+      const updatedRev: InventoryRevision = { ...rev, status: 'posted', postedAt: new Date().toISOString() };
+      saveRevisions(revisions.map(r => r.id === revisionId ? updatedRev : r));
+      showNotification('Ревизия проведена');
+  };
+
   return {
       state: {
           warehouses,
           items,
           movements,
           balances,
+          revisions,
       },
       actions: {
           saveWarehouse,
@@ -130,12 +188,16 @@ export const useInventoryLogic = (showNotification: (msg: string) => void) => {
           saveItem,
           deleteItem,
           createMovement,
+          createRevision,
+          updateRevision,
+          postRevision,
       },
       setters: {
           setWarehouses,
           setItems,
           setMovements,
           setBalances,
+          setRevisions,
       },
   };
 };

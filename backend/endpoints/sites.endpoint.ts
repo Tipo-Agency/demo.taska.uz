@@ -1,4 +1,4 @@
-import { firestoreService } from "../../services/firestoreService";
+import { localStoreService } from "../../services/localStoreService";
 import { PartnerLogo, News, Case, Tag } from "../../types";
 
 const PARTNER_LOGOS_COLLECTION = 'partnerLogos';
@@ -12,21 +12,21 @@ const filterArchived = <T extends { isArchived?: boolean }>(items: T[]): T[] => 
 
 const saveCollection = async (collectionName: string, items: Array<{ id: string; isArchived?: boolean }>) => {
     const activeItems = filterArchived(items);
-    await Promise.all(activeItems.map(item => firestoreService.save(collectionName, item)));
+    await Promise.all(activeItems.map(item => localStoreService.save(collectionName, item)));
     
-    const allItems = await firestoreService.getAll(collectionName);
+    const allItems = await localStoreService.getAll(collectionName);
     const archivedIds = new Set(items.filter(item => item.isArchived).map(item => item.id));
     await Promise.all(
         allItems
             .filter(item => archivedIds.has(item.id))
-            .map(item => firestoreService.delete(collectionName, item.id))
+            .map(item => localStoreService.delete(collectionName, item.id))
     );
 };
 
 // Partner Logos
 export const partnerLogosEndpoint = {
     getAll: async (): Promise<PartnerLogo[]> => {
-        const items = await firestoreService.getAll(PARTNER_LOGOS_COLLECTION);
+        const items = await localStoreService.getAll(PARTNER_LOGOS_COLLECTION);
         return filterArchived(items) as PartnerLogo[];
     },
     updateAll: async (logos: PartnerLogo[]) => saveCollection(PARTNER_LOGOS_COLLECTION, logos),
@@ -35,13 +35,13 @@ export const partnerLogosEndpoint = {
 // News
 export const newsEndpoint = {
     getAll: async (): Promise<News[]> => {
-        const items = await firestoreService.getAll(NEWS_COLLECTION);
+        const items = await localStoreService.getAll(NEWS_COLLECTION);
         return filterArchived(items) as News[];
     },
     updateAll: async (news: News[]) => saveCollection(NEWS_COLLECTION, news),
     // Публичный API для сайта - только опубликованные новости
     getPublished: async (): Promise<News[]> => {
-        const items = await firestoreService.getAll(NEWS_COLLECTION);
+        const items = await localStoreService.getAll(NEWS_COLLECTION);
         return filterArchived(items).filter(item => item.published) as News[];
     },
 };
@@ -49,13 +49,13 @@ export const newsEndpoint = {
 // Cases
 export const casesEndpoint = {
     getAll: async (): Promise<Case[]> => {
-        const items = await firestoreService.getAll(CASES_COLLECTION);
+        const items = await localStoreService.getAll(CASES_COLLECTION);
         return filterArchived(items) as Case[];
     },
     updateAll: async (cases: Case[]) => saveCollection(CASES_COLLECTION, cases),
     // Публичный API для сайта - только опубликованные кейсы
     getPublished: async (): Promise<Case[]> => {
-        const items = await firestoreService.getAll(CASES_COLLECTION);
+        const items = await localStoreService.getAll(CASES_COLLECTION);
         return filterArchived(items).filter(item => item.published) as Case[];
     },
 };
@@ -63,7 +63,7 @@ export const casesEndpoint = {
 // Tags
 export const tagsEndpoint = {
     getAll: async (): Promise<Tag[]> => {
-        const items = await firestoreService.getAll(TAGS_COLLECTION);
+        const items = await localStoreService.getAll(TAGS_COLLECTION);
         return filterArchived(items) as Tag[];
     },
     updateAll: async (tags: Tag[]) => saveCollection(TAGS_COLLECTION, tags),
