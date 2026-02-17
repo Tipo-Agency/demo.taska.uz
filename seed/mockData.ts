@@ -64,7 +64,7 @@ export function runSeed(): void {
     { id: 'task2', tableId: 't1', title: 'Созвон с клиентом', entityType: 'task', status: 'Не начато', priority: 'Высокий', assigneeId: 'u2', startDate: today(), endDate: today(), createdAt: now() },
     { id: 'task3', tableId: 't1', title: 'Обновить лендинг', entityType: 'task', status: 'Выполнено', priority: 'Средний', assigneeId: demoUserId, startDate: today(), endDate: today(), createdAt: now() },
   ];
-  const extraTasks = Array.from({ length: 20 }).map((_, i) => ({
+  const extraTasks = Array.from({ length: 40 }).map((_, i) => ({
     id: `task_extra_${i + 1}`,
     tableId: 't1',
     title: `Демо задача ${i + 1}`,
@@ -76,7 +76,31 @@ export function runSeed(): void {
     endDate: today(),
     createdAt: now(),
   }));
-  localStoreService.setAll('tasks', [...baseTasks, ...extraTasks]);
+  // Идеи для беклога (таблица t3, entityType: 'idea')
+  const backlogIdeas = Array.from({ length: 15 }).map((_, i) => ({
+    id: `idea_${i + 1}`,
+    tableId: 't3',
+    title: `Идея фичи ${i + 1}`,
+    description: `Описание идеи ${i + 1} для продуктового бэклога`,
+    entityType: 'idea' as const,
+    status: 'Не начато' as const,
+    priority: i % 3 === 0 ? 'Низкий' : i % 3 === 1 ? 'Средний' : 'Высокий',
+    assigneeId: i % 2 === 0 ? demoUserId : 'u2',
+    createdAt: now(),
+  }));
+  // Функциональные задачи (таблица t4, entityType: 'feature')
+  const featureTasks = Array.from({ length: 10 }).map((_, i) => ({
+    id: `feature_${i + 1}`,
+    tableId: 't4',
+    title: `Фича ${i + 1}`,
+    description: `Функциональность №${i + 1} для roadmap`,
+    entityType: 'feature' as const,
+    status: 'Не начато' as const,
+    priority: 'Средний' as const,
+    assigneeId: demoUserId,
+    createdAt: now(),
+  }));
+  localStoreService.setAll('tasks', [...baseTasks, ...extraTasks, ...backlogIdeas, ...featureTasks]);
 
   // Sales funnels
   localStoreService.setAll('salesFunnels', [
@@ -103,7 +127,7 @@ export function runSeed(): void {
     { id: 'deal1', title: 'Разработка сайта', clientId: 'c1', amount: 5000000, currency: 'UZS', stage: 'st2', funnelId: 'f1', assigneeId: demoUserId, createdAt: now() },
     { id: 'deal2', title: 'Реклама Instagram', clientId: 'c2', amount: 1200000, currency: 'UZS', stage: 'st1', funnelId: 'f1', assigneeId: 'u2', createdAt: now() },
   ];
-  const extraDeals = Array.from({ length: 10 }).map((_, i) => ({
+  const extraDeals = Array.from({ length: 25 }).map((_, i) => ({
     id: `deal_extra_${i + 1}`,
     title: `Демо сделка ${i + 1}`,
     clientId: i % 2 === 0 ? 'c1' : 'c2',
@@ -122,8 +146,11 @@ export function runSeed(): void {
     { id: 'emp2', userId: 'u2', departmentId: 'd1', position: 'Менеджер', hireDate: '2023-06-01' },
   ]);
 
-  // Accounts receivable (пусто или пара)
-  localStoreService.setAll('accountsReceivable', []);
+  // Accounts receivable
+  localStoreService.setAll('accountsReceivable', [
+    { id: 'ar1', clientId: 'c1', dealId: 'deal1', amount: 2000000, currency: 'UZS', dueDate: today(), status: 'overdue' },
+    { id: 'ar2', clientId: 'c2', dealId: 'deal2', amount: 800000, currency: 'UZS', dueDate: today(), status: 'pending' },
+  ]);
 
   // Docs, folders
   localStoreService.setAll('folders', [
@@ -153,7 +180,7 @@ export function runSeed(): void {
   const basePosts = [
     { id: 'cp1', tableId: 't2', topic: 'Акция лето', description: 'Пост про скидки', date: today(), platform: ['instagram'], format: 'post', status: 'idea' },
   ];
-  const extraPosts = Array.from({ length: 10 }).map((_, i) => ({
+  const extraPosts = Array.from({ length: 25 }).map((_, i) => ({
     id: `cp_extra_${i + 1}`,
     tableId: 't2',
     topic: `Пост ${i + 1}`,
@@ -176,16 +203,90 @@ export function runSeed(): void {
   localStoreService.setAll('purchaseRequests', [
     { id: 'prq1', requesterId: demoUserId, departmentId: 'd1', categoryId: 'fc5', amount: 500000, description: 'Подписка на сервис', status: 'pending', date: today() },
   ]);
-  localStoreService.setAll('financialPlanDocuments', []);
-  localStoreService.setAll('financialPlannings', []);
-
-  // BPM
-  localStoreService.setAll('orgPositions', [
-    { id: 'pos1', name: 'Менеджер по продажам' },
-    { id: 'pos2', name: 'Дизайнер' },
+  // Финпланы и планирования
+  const currentPeriod = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+  localStoreService.setAll('financialPlanDocuments', [
+    {
+      id: 'fpd1',
+      departmentId: 'd1',
+      period: currentPeriod,
+      income: 30000000,
+      expenses: { fc1: 12000000, fc3: 5000000 },
+      status: 'conducted',
+      createdAt: now(),
+      updatedAt: now(),
+      isArchived: false,
+    },
+    {
+      id: 'fpd2',
+      departmentId: 'd2',
+      period: currentPeriod,
+      income: 15000000,
+      expenses: { fc3: 4000000, fc5: 1000000 },
+      status: 'created',
+      createdAt: now(),
+      updatedAt: now(),
+      isArchived: false,
+    },
   ]);
+  localStoreService.setAll('financialPlannings', [
+    {
+      id: 'fpl1',
+      departmentId: 'd1',
+      period: currentPeriod,
+      planDocumentId: 'fpd1',
+      requestIds: ['prq1'],
+      status: 'conducted',
+      createdAt: now(),
+      updatedAt: now(),
+      isArchived: false,
+    },
+  ]);
+
+  // BPM: оргструктура и бизнес‑процессы
+  localStoreService.setAll('orgPositions', [
+    { id: 'pos1', title: 'Менеджер по продажам', departmentId: 'd1' },
+    { id: 'pos2', title: 'Руководитель отдела продаж', departmentId: 'd1' },
+    { id: 'pos3', title: 'Маркетолог', departmentId: 'd2' },
+  ]);
+  const processSteps = [
+    { id: 'step1', title: 'Подготовка КП', assigneeType: 'user', assigneeId: demoUserId, order: 1 },
+    { id: 'step2', title: 'Согласование юристом', assigneeType: 'position', assigneeId: 'pos2', order: 2 },
+    { id: 'step3', title: 'Подписание клиентом', assigneeType: 'user', assigneeId: 'u2', order: 3 },
+  ];
+  const processInstances = [
+    {
+      id: 'pi1',
+      processId: 'bp1',
+      processVersion: 1,
+      currentStepId: 'step2',
+      status: 'active',
+      startedAt: now(),
+      taskIds: ['task1', 'task2'],
+    },
+    {
+      id: 'pi2',
+      processId: 'bp1',
+      processVersion: 1,
+      currentStepId: null,
+      status: 'completed',
+      startedAt: now(),
+      completedAt: now(),
+      taskIds: ['task3'],
+    },
+  ];
   localStoreService.setAll('businessProcesses', [
-    { id: 'bp1', name: 'Согласование договора', description: 'От менеджера до подписи', isArchived: false },
+    {
+      id: 'bp1',
+      version: 1,
+      title: 'Согласование договора',
+      description: 'От создания КП до подписания договора клиентом',
+      steps: processSteps,
+      instances: processInstances,
+      isArchived: false,
+      createdAt: now(),
+      updatedAt: now(),
+    },
   ]);
 
   // Inventory: склады, номенклатура, движения
