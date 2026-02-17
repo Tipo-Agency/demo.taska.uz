@@ -129,6 +129,7 @@ const FunctionalityView: React.FC<FunctionalityViewProps> = ({
   };
 
   const getCategoryLabel = (categoryId: string) => {
+    if (categoryId === 'uncategorized') return 'Без категории';
     const category = STANDARD_CATEGORIES.find(c => c.id === categoryId);
     return category ? category.name : categoryId;
   };

@@ -11,7 +11,7 @@ import {
   DEFAULT_AUTOMATION_RULES,
 } from '../constants';
 
-const SEED_FLAG = 'taska_demo_seeded';
+const SEED_FLAG = 'taska_demo_seeded_v2';
 
 const now = () => new Date().toISOString();
 const today = () => now().slice(0, 10);
@@ -22,11 +22,14 @@ export function runSeed(): void {
 
   const demoUserId = 'demo-user';
 
-  // Users (демо + ещё пару для отображения)
+  // Users: 5+ сотрудников (без avatar — отображаются инициалы на цветном фоне)
   localStoreService.setAll('users', [
     { id: demoUserId, name: 'Демо', role: Role.ADMIN, login: 'demo', password: '' },
     { id: 'u2', name: 'Анна Иванова', role: Role.EMPLOYEE, login: 'anna', email: 'anna@example.com' },
     { id: 'u3', name: 'Пётр Сидоров', role: Role.EMPLOYEE, login: 'petr', email: 'petr@example.com' },
+    { id: 'u4', name: 'Мария Козлова', role: Role.EMPLOYEE, login: 'maria', email: 'maria@example.com' },
+    { id: 'u5', name: 'Иван Новиков', role: Role.EMPLOYEE, login: 'ivan', email: 'ivan@example.com' },
+    { id: 'u6', name: 'Елена Соколова', role: Role.EMPLOYEE, login: 'elena', email: 'elena@example.com' },
   ]);
 
   // Tables (страницы)
@@ -58,106 +61,199 @@ export function runSeed(): void {
     { id: 'pr2', name: 'Реклама в соцсетях' },
   ]);
 
-  // Tasks (status/priority — названия из справочников)
-  const baseTasks = [
-    { id: 'task1', tableId: 't1', title: 'Подготовить КП', entityType: 'task', status: 'В работе', priority: 'Средний', assigneeId: demoUserId, startDate: today(), endDate: today(), createdAt: now() },
-    { id: 'task2', tableId: 't1', title: 'Созвон с клиентом', entityType: 'task', status: 'Не начато', priority: 'Высокий', assigneeId: 'u2', startDate: today(), endDate: today(), createdAt: now() },
-    { id: 'task3', tableId: 't1', title: 'Обновить лендинг', entityType: 'task', status: 'Выполнено', priority: 'Средний', assigneeId: demoUserId, startDate: today(), endDate: today(), createdAt: now() },
+  // Задачи: реальные названия; часть — из постов, сделок, процессов (разные источники)
+  const taskTitles = [
+    'Подготовить КП по разработке сайта', 'Созвон с клиентом ООО Ромашка', 'Обновить блок цен на лендинге',
+    'Согласовать ТЗ с заказчиком', 'Сверстать главную страницу', 'Настроить аналитику на сайте',
+    'Написать текст для поста про акцию', 'Снять сторис для Instagram', 'Подготовить отчёт по рекламе',
+    'Провести ретро по спринту', 'Обновить контент в карточках товаров', 'Интегрировать оплату',
+    'Задача по сделке: Разработка корпоративного сайта', 'Задача по сделке: Реклама в Instagram',
+    'Согласование КП (процесс)', 'Подписание договора (процесс)', 'Проверить вёрстку на мобильных',
+    'Доработать форму заявки', 'Подготовить презентацию для клиента', 'Настроить цепочки писем',
   ];
-  const extraTasks = Array.from({ length: 40 }).map((_, i) => ({
-    id: `task_extra_${i + 1}`,
+  const statuses = ['Не начато', 'В работе', 'На проверке', 'Выполнено'];
+  const baseTasks = taskTitles.slice(0, 8).map((title, i) => ({
+    id: `task_${i + 1}`,
     tableId: 't1',
-    title: `Демо задача ${i + 1}`,
-    entityType: 'task',
-    status: i % 3 === 0 ? 'Не начато' : i % 3 === 1 ? 'В работе' : 'Выполнено',
+    title,
+    entityType: 'task' as const,
+    status: statuses[i % 4],
     priority: i % 3 === 0 ? 'Низкий' : i % 3 === 1 ? 'Средний' : 'Высокий',
-    assigneeId: i % 2 === 0 ? demoUserId : 'u2',
+    assigneeId: [demoUserId, 'u2', 'u3', 'u4'][i % 4],
     startDate: today(),
     endDate: today(),
     createdAt: now(),
   }));
-  // Идеи для беклога (таблица t3, entityType: 'idea')
-  const backlogIdeas = Array.from({ length: 15 }).map((_, i) => ({
+  const extraTasks = taskTitles.slice(8, 20).map((title, i) => ({
+    id: `task_extra_${i + 1}`,
+    tableId: 't1',
+    title,
+    entityType: 'task' as const,
+    status: statuses[(i + 2) % 4],
+    priority: ['Низкий', 'Средний', 'Высокий'][i % 3],
+    assigneeId: [demoUserId, 'u2', 'u3'][i % 3],
+    startDate: today(),
+    endDate: today(),
+    createdAt: now(),
+    ...(i === 0 ? { contentPostId: 'cp1', source: 'Контент-план' } : {}),
+    ...(i === 1 ? { contentPostId: 'cp_2', source: 'Контент-план' } : {}),
+    ...(i === 2 ? { dealId: 'fdeal_1', source: 'Сделка' } : {}),
+    ...(i === 3 ? { dealId: 'fdeal_2', source: 'Сделка' } : {}),
+    ...(i === 4 ? { processId: 'bp1', processInstanceId: 'pi1', stepId: 'step1', source: 'Бизнес-процесс' } : {}),
+    ...(i === 5 ? { processId: 'bp1', processInstanceId: 'pi1', stepId: 'step2', source: 'Бизнес-процесс' } : {}),
+  }));
+  const backlogIdeaTitles = [
+    'Личный кабинет клиента на сайте', 'Уведомления в браузере', 'Интеграция с Telegram-ботом',
+    'Виджет обратного звонка', 'A/B-тесты лендингов', 'Чат поддержки на сайте',
+    'Расширенная аналитика воронки', 'Авто-напоминания по сделкам', 'Шаблоны КП в один клик',
+    'Синхронизация с Google Календарём', 'Экспорт отчётов в Excel', 'Двухэтапная верификация',
+  ];
+  const backlogIdeas = backlogIdeaTitles.map((title, i) => ({
     id: `idea_${i + 1}`,
     tableId: 't3',
-    title: `Идея фичи ${i + 1}`,
-    description: `Описание идеи ${i + 1} для продуктового бэклога`,
+    title,
+    description: `Идея для продуктовой доработки: ${title}`,
     entityType: 'idea' as const,
-    status: 'Не начато' as const,
+    status: statuses[i % 3],
     priority: i % 3 === 0 ? 'Низкий' : i % 3 === 1 ? 'Средний' : 'Высокий',
-    assigneeId: i % 2 === 0 ? demoUserId : 'u2',
+    assigneeId: [demoUserId, 'u2', 'u4'][i % 3],
     createdAt: now(),
   }));
-  // Функциональные задачи (таблица t4, entityType: 'feature')
-  const featureTasks = Array.from({ length: 10 }).map((_, i) => ({
+  const featureTitles = [
+    'Установка счётчиков аналитики', 'Файл robots.txt и sitemap', 'Базовые фичи личного кабинета',
+    'Настройка бэкенда и API', 'Расположение сервера', 'Интеграция с платёжной системой',
+    'Мобильная версия каталога', 'Фильтры и поиск', 'Чат с поддержкой', 'Рассылка по email',
+  ];
+  const featureTasks = featureTitles.map((title, i) => ({
     id: `feature_${i + 1}`,
     tableId: 't4',
-    title: `Фича ${i + 1}`,
-    description: `Функциональность №${i + 1} для roadmap`,
+    title,
+    description: `Реализация: ${title}`,
     entityType: 'feature' as const,
-    status: 'Не начато' as const,
+    status: statuses[i % 4],
     priority: 'Средний' as const,
-    assigneeId: demoUserId,
+    assigneeId: i % 2 === 0 ? demoUserId : 'u5',
     createdAt: now(),
+    category: i < 5 ? ['counters', 'seo', 'features', 'backend', 'infrastructure'][i] : 'uncategorized',
+    projectId: i % 3 === 0 ? 'pr1' : i % 3 === 1 ? 'pr2' : undefined,
   }));
   localStoreService.setAll('tasks', [...baseTasks, ...extraTasks, ...backlogIdeas, ...featureTasks]);
 
-  // Sales funnels
+  // Sales funnels (id этапов = new, qualification, proposal, negotiation — под канбан)
   localStoreService.setAll('salesFunnels', [
     {
       id: 'f1',
       name: 'Продажи',
       stages: [
-        { id: 'st1', label: 'Новая', color: 'bg-gray-200' },
-        { id: 'st2', label: 'В работе', color: 'bg-blue-200' },
-        { id: 'st3', label: 'Счёт', color: 'bg-amber-200' },
-        { id: 'st4', label: 'Сделка', color: 'bg-green-200' },
+        { id: 'new', label: 'Новая заявка', color: 'bg-gray-200 dark:bg-gray-700' },
+        { id: 'qualification', label: 'Квалификация', color: 'bg-blue-200 dark:bg-blue-900' },
+        { id: 'proposal', label: 'Предложение (КП)', color: 'bg-purple-200 dark:bg-purple-900' },
+        { id: 'negotiation', label: 'Переговоры', color: 'bg-orange-200 dark:bg-orange-900' },
       ],
     },
   ]);
 
-  // Clients
-  localStoreService.setAll('clients', [
-    { id: 'c1', name: 'ООО Ромашка', contactPerson: 'Мария', email: 'maria@romashka.uz', phone: '+998901234567' },
-    { id: 'c2', name: 'ИП Васильев', contactPerson: 'Алексей', phone: '+998909876543' },
-  ]);
-
-  // Deals (CRM: title, stage, assigneeId, funnelId)
-  const baseDeals = [
-    { id: 'deal1', title: 'Разработка сайта', clientId: 'c1', amount: 5000000, currency: 'UZS', stage: 'st2', funnelId: 'f1', assigneeId: demoUserId, createdAt: now() },
-    { id: 'deal2', title: 'Реклама Instagram', clientId: 'c2', amount: 1200000, currency: 'UZS', stage: 'st1', funnelId: 'f1', assigneeId: 'u2', createdAt: now() },
+  // 10 клиентов
+  const clientNames = [
+    'ООО Ромашка', 'ИП Васильев', 'ЧП Текстиль Плюс', 'ООО Агро Сервис', 'ИП Фотостудия',
+    'ООО СтройМаш', 'ИП Кофе Хауз', 'ООО Медиа Групп', 'ЧП Мебель Стандарт', 'ООО Логистик',
   ];
-  const extraDeals = Array.from({ length: 25 }).map((_, i) => ({
-    id: `deal_extra_${i + 1}`,
-    title: `Демо сделка ${i + 1}`,
-    clientId: i % 2 === 0 ? 'c1' : 'c2',
-    amount: 1000000 + i * 150000,
-    currency: 'UZS',
-    stage: i % 4 === 0 ? 'st1' : i % 4 === 1 ? 'st2' : i % 4 === 2 ? 'st3' : 'st4',
-    funnelId: 'f1',
-    assigneeId: i % 2 === 0 ? demoUserId : 'u2',
-    createdAt: now(),
+  const clients = clientNames.map((name, i) => ({
+    id: `c${i + 1}`,
+    name,
+    contactPerson: ['Мария', 'Алексей', 'Дилноза', 'Сергей', 'Карина', 'Олег', 'Нигора', 'Артём', 'Юлия', 'Дмитрий'][i],
+    email: `contact${i + 1}@example.uz`,
+    phone: `+99890${1000000 + i}`,
   }));
-  localStoreService.setAll('deals', [...baseDeals, ...extraDeals]);
+  localStoreService.setAll('clients', clients);
 
-  // Employee infos
+  // Сделки воронки: реальные названия, этапы new/qualification/proposal/negotiation (канбан), 5 отказов
+  const funnelDealTitles = [
+    'Разработка корпоративного сайта', 'Реклама в Instagram', 'Настройка сквозной аналитики',
+    'Дизайн мобильного приложения', 'Ведение соцсетей (3 месяца)', 'Лендинг под акцию',
+    'Фотосессия для каталога', 'Видеоролик 30 сек', 'Контекстная реклама Яндекс',
+    'SMM-сопровождение', 'Редизайн лендинга', 'Интеграция с 1С', 'Поддержка сайта (год)',
+    'Запуск интернет-магазина', 'Аудит рекламных кампаний', 'Не подошёл бюджет',
+    'Выбрали другого подрядчика', 'Отложили на квартал', 'Нет ответа от ЛПР',
+    'Отказ после КП',
+  ];
+  const funnelDeals = funnelDealTitles.map((title, i) => ({
+    id: `fdeal_${i + 1}`,
+    title,
+    clientId: i < 10 ? clients[i].id : undefined,
+    amount: 1500000 + i * 400000,
+    currency: 'UZS',
+    stage: i >= 15 ? 'lost' : (['new', 'qualification', 'proposal', 'negotiation'] as const)[i % 4],
+    funnelId: 'f1',
+    assigneeId: [demoUserId, 'u2', 'u3', 'u4'][i % 4],
+    createdAt: now(),
+    source: (['manual', 'site', 'instagram', 'recommendation'] as const)[i % 4],
+  }));
+  // Договоры (регулярные и разовые) для клиентов — по 1–2 на клиента; funnelId не f1, чтобы не попадали в воронку
+  const contractDeals: any[] = [];
+  clients.slice(0, 10).forEach((client, i) => {
+    contractDeals.push({
+      id: `contract_${client.id}_1`,
+      number: `Д-${2025}-${100 + i}`,
+      recurring: true,
+      clientId: client.id,
+      amount: 500000 + i * 100000,
+      currency: 'UZS',
+      status: i % 3 === 0 ? 'active' : i % 3 === 1 ? 'pending' : 'paid',
+      description: 'Ежемесячное сопровождение сайта и рекламы',
+      startDate: '2025-01-01',
+      endDate: '2025-12-31',
+      paymentDay: 10,
+      createdAt: now(),
+      funnelId: 'contracts',
+    });
+    if (i % 2 === 0) {
+      contractDeals.push({
+        id: `onetime_${client.id}`,
+        number: `Р-${2025}-${200 + i}`,
+        recurring: false,
+        clientId: client.id,
+        amount: 1200000,
+        currency: 'UZS',
+        status: i % 2 === 0 ? 'completed' : 'pending',
+        description: 'Разовая разработка лендинга',
+        date: today(),
+        createdAt: now(),
+        funnelId: 'contracts',
+      });
+    }
+  });
+  localStoreService.setAll('deals', [...funnelDeals, ...contractDeals]);
+
+  // Employee infos (5+ сотрудников, оргструктура)
   localStoreService.setAll('employeeInfos', [
-    { id: 'emp1', userId: demoUserId, position: 'Руководитель', hireDate: '2023-01-01' },
-    { id: 'emp2', userId: 'u2', departmentId: 'd1', position: 'Менеджер', hireDate: '2023-06-01' },
+    { id: 'emp1', userId: demoUserId, departmentId: 'd1', position: 'Руководитель', hireDate: '2023-01-01' },
+    { id: 'emp2', userId: 'u2', departmentId: 'd1', position: 'Менеджер по продажам', hireDate: '2023-06-01' },
+    { id: 'emp3', userId: 'u3', departmentId: 'd1', position: 'Менеджер', hireDate: '2023-09-01' },
+    { id: 'emp4', userId: 'u4', departmentId: 'd2', position: 'Маркетолог', hireDate: '2024-01-15' },
+    { id: 'emp5', userId: 'u5', departmentId: 'd3', position: 'Разработчик', hireDate: '2024-03-01' },
+    { id: 'emp6', userId: 'u6', departmentId: 'd2', position: 'SMM-специалист', hireDate: '2024-06-01' },
   ]);
 
-  // Accounts receivable
+  // Задолженности (по сделкам/договорам)
   localStoreService.setAll('accountsReceivable', [
-    { id: 'ar1', clientId: 'c1', dealId: 'deal1', amount: 2000000, currency: 'UZS', dueDate: today(), status: 'overdue' },
-    { id: 'ar2', clientId: 'c2', dealId: 'deal2', amount: 800000, currency: 'UZS', dueDate: today(), status: 'pending' },
+    { id: 'ar1', clientId: 'c1', dealId: 'contract_c1_1', amount: 500000, currency: 'UZS', dueDate: today(), status: 'overdue', description: 'Остаток по договору Д-2025-100', createdAt: now() },
+    { id: 'ar2', clientId: 'c2', dealId: 'contract_c2_1', amount: 600000, currency: 'UZS', dueDate: today(), status: 'current', description: 'Платёж за март', createdAt: now() },
+    { id: 'ar3', clientId: 'c3', dealId: 'contract_c3_1', amount: 700000, currency: 'UZS', dueDate: today(), status: 'overdue', description: 'Просроченный платёж', createdAt: now() },
   ]);
 
-  // Docs, folders
+  // Документы и папки (мок по вкладкам)
   localStoreService.setAll('folders', [
     { id: 'fd1', tableId: 't1', name: 'Документы по проектам' },
+    { id: 'fd2', tableId: 't1', name: 'Шаблоны' },
+    { id: 'fd3', tableId: 't1', name: 'Отчёты' },
   ]);
   localStoreService.setAll('docs', [
-    { id: 'doc1', tableId: 't1', folderId: 'fd1', title: 'Договор шаблон', type: 'link', url: 'https://example.com', tags: ['договор'] },
+    { id: 'doc1', tableId: 't1', folderId: 'fd1', title: 'Договор оказания услуг (шаблон)', type: 'link', url: 'https://example.com/doc', tags: ['договор'] },
+    { id: 'doc2', tableId: 't1', folderId: 'fd1', title: 'ТЗ на разработку сайта — ООО Ромашка', type: 'internal', tags: ['ТЗ', 'сайт'] },
+    { id: 'doc3', tableId: 't1', folderId: 'fd2', title: 'Бриф для клиента', type: 'internal', tags: ['бриф'] },
+    { id: 'doc4', tableId: 't1', folderId: 'fd2', title: 'КП шаблон (услуги)', type: 'link', url: 'https://example.com/kp', tags: ['КП'] },
+    { id: 'doc5', tableId: 't1', folderId: 'fd3', title: 'Отчёт по рекламе за февраль', type: 'internal', tags: ['отчёт'] },
   ]);
 
   // Meetings
@@ -176,104 +272,113 @@ export function runSeed(): void {
   }));
   localStoreService.setAll('meetings', [...baseMeetings, ...extraMeetings]);
 
-  // Content posts
-  const basePosts = [
-    { id: 'cp1', tableId: 't2', topic: 'Акция лето', description: 'Пост про скидки', date: today(), platform: ['instagram'], format: 'post', status: 'idea' },
+  // Контент-план: реальные названия, по дням (разные даты), посты/сторис/reel, разные статусы
+  const contentStatuses = ['idea', 'copywriting', 'design', 'approval', 'scheduled', 'published'] as const;
+  const contentFormats = ['post', 'story', 'reel', 'post', 'video', 'post'] as const;
+  const contentTopics = [
+    'Акция «Лето — скидка 20%»', 'Новый кейс: сайт для ООО Ромашка', 'Сторис: закулисье офиса',
+    'Reel: как мы делаем дизайн', 'Полезное: 5 ошибок в рекламе', 'Анонс вебинара по SMM',
+    'Отзыв клиента ИП Васильев', 'Сторис с опросом: что важнее?', 'Пост про команду',
+    'Кейс: лендинг за 5 дней', 'Reel с тизерами проекта', 'Акция ко Дню предпринимателя',
+    'Обзор нового функционала', 'Сторис: этапы разработки', 'Пост про тренды 2025',
+    'Видео-приветствие от руководителя', 'Кейс: настройка рекламы', 'Сторис: офис в пятницу',
+    'Пост про сертификаты', 'Reel: до/после редизайна', 'Анонс бесплатной консультации',
+    'Пост про кейс агро-клиента', 'Сторис вопрос-ответ', 'Итоги месяца в цифрах',
   ];
-  const extraPosts = Array.from({ length: 25 }).map((_, i) => ({
-    id: `cp_extra_${i + 1}`,
-    tableId: 't2',
-    topic: `Пост ${i + 1}`,
-    description: 'Демо контент',
-    date: today(),
-    platform: ['instagram'],
-    format: 'post' as const,
-    status: 'idea' as const,
-  }));
-  localStoreService.setAll('contentPosts', [...basePosts, ...extraPosts]);
+  const contentPosts = contentTopics.map((topic, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - 7 + (i % 14));
+    const dateStr = d.toISOString().slice(0, 10);
+    return {
+      id: i === 0 ? 'cp1' : `cp_${i + 1}`,
+      tableId: 't2',
+      topic,
+      description: `Контент: ${topic}`,
+      date: dateStr,
+      platform: ['instagram'],
+      format: contentFormats[i % contentFormats.length],
+      status: contentStatuses[i % contentStatuses.length],
+    };
+  });
+  localStoreService.setAll('contentPosts', contentPosts);
 
   // Activity
   localStoreService.setAll('activity', [
     { id: 'a1', userId: demoUserId, userName: 'Демо', userAvatar: '', action: 'task_created', details: 'Задача «Подготовить КП»', timestamp: now(), read: false },
   ]);
 
-  // Finance
+  // Финансы: 5 финпланов, 5 планирований, 20–30 заявок на 2 разные недели
   localStoreService.setAll('financeCategories', DEFAULT_FINANCE_CATEGORIES);
   localStoreService.setAll('financePlan', [{ id: 'default', period: 'month', salesPlan: 50000000, currentIncome: 12000000 }]);
-  localStoreService.setAll('purchaseRequests', [
-    { id: 'prq1', requesterId: demoUserId, departmentId: 'd1', categoryId: 'fc5', amount: 500000, description: 'Подписка на сервис', status: 'pending', date: today() },
-  ]);
-  // Финпланы и планирования
+  const week1 = new Date();
+  week1.setDate(week1.getDate() - 7);
+  const week2 = new Date();
+  const week1Str = week1.toISOString().slice(0, 10);
+  const week2Str = week2.toISOString().slice(0, 10);
+  const requestDescriptions = [
+    'Подписка на сервис аналитики', 'Канцтовары офис', 'Рекламный бюджет Instagram',
+    'Хостинг на год', 'Лицензии Figma', 'Оборудование для студии', 'Курсы для команды',
+    'Облачное хранилище', 'Подписка на тариф прод', 'Мерч для клиентов',
+    'Транспортные расходы', 'Печать буклетов', 'Фотостоки', 'Сертификация',
+    'Аренда переговорки', 'Кофе и чай офис', 'Полиграфия визиток', 'Домен и SSL',
+    'Подписка на рассылку', 'Внешний аудит', 'Консультант по налогам', 'Резерв',
+  ];
+  const purchaseRequests = requestDescriptions.map((description, i) => ({
+    id: `prq_${i + 1}`,
+    requesterId: [demoUserId, 'u2', 'u4'][i % 3],
+    departmentId: ['d1', 'd2', 'd3'][i % 3],
+    categoryId: ['fc1', 'fc3', 'fc5', 'fc2', 'fc4'][i % 5],
+    amount: 200000 + i * 80000,
+    description,
+    status: (['pending', 'approved', 'rejected', 'deferred'] as const)[i % 4],
+    date: i % 2 === 0 ? week1Str : week2Str,
+  }));
+  localStoreService.setAll('purchaseRequests', purchaseRequests);
   const currentPeriod = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
-  localStoreService.setAll('financialPlanDocuments', [
-    {
-      id: 'fpd1',
-      departmentId: 'd1',
-      period: currentPeriod,
-      income: 30000000,
-      expenses: { fc1: 12000000, fc3: 5000000 },
-      status: 'conducted',
-      createdAt: now(),
-      updatedAt: now(),
-      isArchived: false,
-    },
-    {
-      id: 'fpd2',
-      departmentId: 'd2',
-      period: currentPeriod,
-      income: 15000000,
-      expenses: { fc3: 4000000, fc5: 1000000 },
-      status: 'created',
-      createdAt: now(),
-      updatedAt: now(),
-      isArchived: false,
-    },
-  ]);
-  localStoreService.setAll('financialPlannings', [
-    {
-      id: 'fpl1',
-      departmentId: 'd1',
-      period: currentPeriod,
-      planDocumentId: 'fpd1',
-      requestIds: ['prq1'],
-      status: 'conducted',
-      createdAt: now(),
-      updatedAt: now(),
-      isArchived: false,
-    },
-  ]);
+  const financialPlanDocuments = [
+    { id: 'fpd1', departmentId: 'd1', period: currentPeriod, income: 30000000, expenses: { fc1: 12000000, fc3: 5000000 }, status: 'conducted', createdAt: now(), updatedAt: now(), isArchived: false },
+    { id: 'fpd2', departmentId: 'd2', period: currentPeriod, income: 15000000, expenses: { fc3: 4000000, fc5: 1000000 }, status: 'created', createdAt: now(), updatedAt: now(), isArchived: false },
+    { id: 'fpd3', departmentId: 'd3', period: currentPeriod, income: 8000000, expenses: { fc2: 2000000, fc5: 1500000 }, status: 'conducted', createdAt: now(), updatedAt: now(), isArchived: false },
+    { id: 'fpd4', departmentId: 'd1', period: currentPeriod, income: 25000000, expenses: { fc1: 8000000 }, status: 'approved', createdAt: now(), updatedAt: now(), isArchived: false },
+    { id: 'fpd5', departmentId: 'd2', period: currentPeriod, income: 12000000, expenses: { fc3: 3000000, fc4: 1000000 }, status: 'created', createdAt: now(), updatedAt: now(), isArchived: false },
+  ];
+  localStoreService.setAll('financialPlanDocuments', financialPlanDocuments);
+  const requestIds = purchaseRequests.slice(0, 25).map(r => r.id);
+  const financialPlannings = [
+    { id: 'fpl1', departmentId: 'd1', period: currentPeriod, planDocumentId: 'fpd1', requestIds: requestIds.slice(0, 8), status: 'conducted', createdAt: now(), updatedAt: now(), isArchived: false },
+    { id: 'fpl2', departmentId: 'd2', period: currentPeriod, planDocumentId: 'fpd2', requestIds: requestIds.slice(8, 14), status: 'created', createdAt: now(), updatedAt: now(), isArchived: false },
+    { id: 'fpl3', departmentId: 'd3', period: currentPeriod, planDocumentId: 'fpd3', requestIds: requestIds.slice(14, 18), status: 'conducted', createdAt: now(), updatedAt: now(), isArchived: false },
+    { id: 'fpl4', departmentId: 'd1', period: currentPeriod, planDocumentId: 'fpd4', requestIds: requestIds.slice(18, 22), status: 'approved', createdAt: now(), updatedAt: now(), isArchived: false },
+    { id: 'fpl5', departmentId: 'd2', period: currentPeriod, planDocumentId: 'fpd5', requestIds: requestIds.slice(22, 25), status: 'created', createdAt: now(), updatedAt: now(), isArchived: false },
+  ];
+  localStoreService.setAll('financialPlannings', financialPlannings);
 
-  // BPM: оргструктура и бизнес‑процессы
+  // BPM: оргструктура и 3–4 бизнес‑процесса с запущенными экземплярами
   localStoreService.setAll('orgPositions', [
     { id: 'pos1', title: 'Менеджер по продажам', departmentId: 'd1' },
-    { id: 'pos2', title: 'Руководитель отдела продаж', departmentId: 'd1' },
+    { id: 'pos2', title: 'Руководитель отдела продаж', departmentId: 'd1', managerPositionId: undefined },
     { id: 'pos3', title: 'Маркетолог', departmentId: 'd2' },
+    { id: 'pos4', title: 'Руководитель разработки', departmentId: 'd3' },
   ]);
-  const processSteps = [
-    { id: 'step1', title: 'Подготовка КП', assigneeType: 'user', assigneeId: demoUserId, order: 1 },
-    { id: 'step2', title: 'Согласование юристом', assigneeType: 'position', assigneeId: 'pos2', order: 2 },
-    { id: 'step3', title: 'Подписание клиентом', assigneeType: 'user', assigneeId: 'u2', order: 3 },
+  const bp1Steps = [
+    { id: 'bp1_s1', title: 'Подготовка КП', assigneeType: 'user', assigneeId: demoUserId, order: 1 },
+    { id: 'bp1_s2', title: 'Согласование юристом', assigneeType: 'position', assigneeId: 'pos2', order: 2 },
+    { id: 'bp1_s3', title: 'Подписание клиентом', assigneeType: 'user', assigneeId: 'u2', order: 3 },
   ];
-  const processInstances = [
-    {
-      id: 'pi1',
-      processId: 'bp1',
-      processVersion: 1,
-      currentStepId: 'step2',
-      status: 'active',
-      startedAt: now(),
-      taskIds: ['task1', 'task2'],
-    },
-    {
-      id: 'pi2',
-      processId: 'bp1',
-      processVersion: 1,
-      currentStepId: null,
-      status: 'completed',
-      startedAt: now(),
-      completedAt: now(),
-      taskIds: ['task3'],
-    },
+  const bp2Steps = [
+    { id: 'bp2_s1', title: 'Заявка на закупку', assigneeType: 'user', assigneeId: demoUserId, order: 1 },
+    { id: 'bp2_s2', title: 'Согласование бюджета', assigneeType: 'position', assigneeId: 'pos2', order: 2 },
+    { id: 'bp2_s3', title: 'Заказ и приёмка', assigneeType: 'user', assigneeId: 'u4', order: 3 },
+  ];
+  const bp3Steps = [
+    { id: 'bp3_s1', title: 'Черновик контента', assigneeType: 'user', assigneeId: 'u4', order: 1 },
+    { id: 'bp3_s2', title: 'Верстка и дизайн', assigneeType: 'user', assigneeId: 'u5', order: 2 },
+    { id: 'bp3_s3', title: 'Публикация', assigneeType: 'user', assigneeId: 'u6', order: 3 },
+  ];
+  const bp4Steps = [
+    { id: 'bp4_s1', title: 'Приём заявки', assigneeType: 'user', assigneeId: 'u2', order: 1 },
+    { id: 'bp4_s2', title: 'Разработка', assigneeType: 'position', assigneeId: 'pos4', order: 2 },
+    { id: 'bp4_s3', title: 'Сдача клиенту', assigneeType: 'user', assigneeId: demoUserId, order: 3 },
   ];
   localStoreService.setAll('businessProcesses', [
     {
@@ -281,50 +386,133 @@ export function runSeed(): void {
       version: 1,
       title: 'Согласование договора',
       description: 'От создания КП до подписания договора клиентом',
-      steps: processSteps,
-      instances: processInstances,
+      steps: bp1Steps,
+      instances: [
+        { id: 'pi1', processId: 'bp1', processVersion: 1, currentStepId: 'bp1_s2', status: 'active', startedAt: now(), taskIds: ['task_1', 'task_2'] },
+        { id: 'pi2', processId: 'bp1', processVersion: 1, currentStepId: null, status: 'completed', startedAt: now(), completedAt: now(), taskIds: ['task_3'] },
+      ],
+      isArchived: false,
+      createdAt: now(),
+      updatedAt: now(),
+    },
+    {
+      id: 'bp2',
+      version: 1,
+      title: 'Закупка канцтоваров',
+      description: 'Заявка → согласование → заказ',
+      steps: bp2Steps,
+      instances: [
+        { id: 'pi3', processId: 'bp2', processVersion: 1, currentStepId: 'bp2_s1', status: 'active', startedAt: now(), taskIds: [] },
+      ],
+      isArchived: false,
+      createdAt: now(),
+      updatedAt: now(),
+    },
+    {
+      id: 'bp3',
+      version: 1,
+      title: 'Публикация контента',
+      description: 'От идеи до публикации в соцсетях',
+      steps: bp3Steps,
+      instances: [
+        { id: 'pi4', processId: 'bp3', processVersion: 1, currentStepId: 'bp3_s2', status: 'active', startedAt: now(), taskIds: [] },
+      ],
+      isArchived: false,
+      createdAt: now(),
+      updatedAt: now(),
+    },
+    {
+      id: 'bp4',
+      version: 1,
+      title: 'Выполнение заказа на разработку',
+      description: 'Заявка клиента → разработка → сдача',
+      steps: bp4Steps,
+      instances: [
+        { id: 'pi5', processId: 'bp4', processVersion: 1, currentStepId: 'bp4_s2', status: 'active', startedAt: now(), taskIds: [] },
+      ],
       isArchived: false,
       createdAt: now(),
       updatedAt: now(),
     },
   ]);
 
-  // Inventory: склады, номенклатура, движения
+  // Склад: нормальные названия номенклатуры, приходы, расходы, ревизии
   localStoreService.setAll('warehouses', [
     { id: 'wh1', name: 'Основной склад', departmentId: 'd1' },
     { id: 'wh2', name: 'Склад маркетинга', departmentId: 'd2' },
     { id: 'wh3', name: 'Склад мерча', departmentId: 'd2' },
   ]);
-  const baseItems = [
+  const itemNames = [
     { id: 'it1', sku: '001', name: 'Блокнот А4', unit: 'шт', category: 'Канцтовары' },
     { id: 'it2', sku: '002', name: 'Ручка синяя', unit: 'шт', category: 'Канцтовары' },
-    { id: 'it3', sku: '003', name: 'Мерч (футболка)', unit: 'шт', category: 'Мерч' },
+    { id: 'it3', sku: '003', name: 'Футболка с логотипом', unit: 'шт', category: 'Мерч' },
+    { id: 'it4', sku: '004', name: 'Скрепки коробка', unit: 'шт', category: 'Канцтовары' },
+    { id: 'it5', sku: '005', name: 'Папка-регистратор', unit: 'шт', category: 'Канцтовары' },
+    { id: 'it6', sku: '006', name: 'Стикеры набор', unit: 'шт', category: 'Канцтовары' },
+    { id: 'it7', sku: '007', name: 'Кружка с логотипом', unit: 'шт', category: 'Мерч' },
+    { id: 'it8', sku: '008', name: 'Бумага A4 пачка', unit: 'пачка', category: 'Канцтовары' },
+    { id: 'it9', sku: '009', name: 'Картридж для принтера', unit: 'шт', category: 'Канцтовары' },
+    { id: 'it10', sku: '010', name: 'Кепка брендированная', unit: 'шт', category: 'Мерч' },
   ];
-  const extraItems = Array.from({ length: 20 }).map((_, i) => ({
-    id: `it_extra_${i + 1}`,
-    sku: `${100 + i}`,
-    name: `Товар ${i + 1}`,
-    unit: 'шт',
-    category: i % 2 === 0 ? 'Канцтовары' : 'Мерч',
-  }));
-  localStoreService.setAll('inventoryItems', [...baseItems, ...extraItems]);
+  localStoreService.setAll('inventoryItems', itemNames);
 
-  const baseMovements = [
-    { id: 'mv1', type: 'receipt', date: now(), toWarehouseId: 'wh1', items: [{ itemId: 'it1', quantity: 50 }, { itemId: 'it2', quantity: 100 }], reason: 'Оприходование', createdByUserId: demoUserId },
-    { id: 'mv2', type: 'receipt', date: now(), toWarehouseId: 'wh1', items: [{ itemId: 'it3', quantity: 20 }], reason: 'Поступление мерча', createdByUserId: demoUserId },
+  const stockMovements = [
+    { id: 'mv1', type: 'receipt', date: now(), toWarehouseId: 'wh1', items: [{ itemId: 'it1', quantity: 50 }, { itemId: 'it2', quantity: 100 }], reason: 'Оприходование канцтоваров', createdByUserId: demoUserId },
+    { id: 'mv2', type: 'receipt', date: now(), toWarehouseId: 'wh1', items: [{ itemId: 'it3', quantity: 20 }, { itemId: 'it7', quantity: 15 }], reason: 'Поступление мерча', createdByUserId: demoUserId },
+    { id: 'mv3', type: 'transfer', date: now(), fromWarehouseId: 'wh1', toWarehouseId: 'wh2', items: [{ itemId: 'it1', quantity: 10 }, { itemId: 'it2', quantity: 20 }], reason: 'Передача в отдел маркетинга', createdByUserId: demoUserId },
+    { id: 'mv4', type: 'writeoff', date: now(), fromWarehouseId: 'wh1', items: [{ itemId: 'it2', quantity: 5 }], reason: 'Списание испорченного', createdByUserId: demoUserId },
+    { id: 'mv5', type: 'receipt', date: now(), toWarehouseId: 'wh1', items: [{ itemId: 'it8', quantity: 10 }, { itemId: 'it9', quantity: 2 }], reason: 'Закупка офисная', createdByUserId: demoUserId },
+    { id: 'mv6', type: 'transfer', date: now(), fromWarehouseId: 'wh1', toWarehouseId: 'wh3', items: [{ itemId: 'it3', quantity: 5 }], reason: 'Мерч на выставку', createdByUserId: demoUserId },
   ];
-  const extraMovements = Array.from({ length: 15 }).map((_, i) => ({
-    id: `mv_extra_${i + 1}`,
-    type: i % 3 === 0 ? 'transfer' : i % 3 === 1 ? 'writeoff' : 'receipt',
-    date: now(),
-    fromWarehouseId: i % 3 === 0 || i % 3 === 1 ? 'wh1' : undefined,
-    toWarehouseId: i % 3 === 0 || i % 3 === 2 ? (i % 2 === 0 ? 'wh2' : 'wh3') : undefined,
-    items: [{ itemId: i % 2 === 0 ? 'it1' : 'it2', quantity: 5 + i }],
-    reason: 'Демо операция',
-    createdByUserId: demoUserId,
-  }));
-  localStoreService.setAll('stockMovements', [...baseMovements, ...extraMovements]);
-  localStoreService.setAll('inventoryRevisions', []);
+  localStoreService.setAll('stockMovements', stockMovements);
+  localStoreService.setAll('inventoryRevisions', [
+    {
+      id: 'rev1',
+      number: 'РВ-001',
+      warehouseId: 'wh1',
+      date: today(),
+      status: 'draft',
+      lines: [
+        { itemId: 'it1', quantitySystem: 40, quantityFact: 40 },
+        { itemId: 'it2', quantitySystem: 95, quantityFact: 93 },
+      ],
+      createdByUserId: demoUserId,
+    },
+    {
+      id: 'rev2',
+      number: 'РВ-002',
+      warehouseId: 'wh1',
+      date: today(),
+      status: 'posted',
+      lines: [
+        { itemId: 'it1', quantitySystem: 50, quantityFact: 50 },
+        { itemId: 'it2', quantitySystem: 100, quantityFact: 100 },
+      ],
+      createdByUserId: demoUserId,
+      postedAt: now(),
+    },
+  ]);
+
+  // Сайты: мок для вкладок Логотипы, Новости, Кейсы, Теги
+  localStoreService.setAll('partnerLogos', [
+    { id: 'logo1', name: 'Партнёр 1', logoUrl: '', websiteUrl: 'https://example.com', order: 1, createdAt: now() },
+    { id: 'logo2', name: 'Партнёр 2', logoUrl: '', websiteUrl: 'https://example.com', order: 2, createdAt: now() },
+    { id: 'logo3', name: 'Партнёр 3', logoUrl: '', websiteUrl: 'https://example.com', order: 3, createdAt: now() },
+  ]);
+  localStoreService.setAll('news', [
+    { id: 'news1', title: 'Запустили новый сайт для ООО Ромашка', content: '<p>Кейс по разработке корпоративного сайта.</p>', excerpt: 'Успешный запуск проекта', tags: [], published: true, publishedAt: now(), createdAt: now() },
+    { id: 'news2', title: 'Расширяем команду', content: '<p>Приглашаем маркетологов и разработчиков.</p>', excerpt: 'Вакансии', tags: [], published: true, publishedAt: now(), createdAt: now() },
+    { id: 'news3', title: 'Вебинар по SMM 25 февраля', content: '<p>Регистрируйтесь на бесплатный вебинар.</p>', excerpt: 'Мероприятие', tags: [], published: false, createdAt: now() },
+  ]);
+  localStoreService.setAll('cases', [
+    { id: 'case1', title: 'Сайт для ООО Ромашка', description: '<p>Корпоративный сайт с каталогом и формой заявки.</p>', clientName: 'ООО Ромашка', tags: [], order: 1, published: true, createdAt: now() },
+    { id: 'case2', title: 'Реклама в Instagram для ИП Васильев', description: '<p>Настройка таргета и ведение профиля.</p>', clientName: 'ИП Васильев', tags: [], order: 2, published: true, createdAt: now() },
+  ]);
+  localStoreService.setAll('tags', [
+    { id: 'tag1', name: 'Разработка', color: '#267022', createdAt: now() },
+    { id: 'tag2', name: 'Реклама', color: '#3b82f6', createdAt: now() },
+    { id: 'tag3', name: 'Кейс', color: '#8b5cf6', createdAt: now() },
+  ]);
 
   localStorage.setItem(SEED_FLAG, '1');
 }

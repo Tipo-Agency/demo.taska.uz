@@ -196,13 +196,26 @@ const HomeView: React.FC<HomeViewProps> = ({
       )}
 
       <div className="max-w-7xl mx-auto w-full px-6 pb-20 pt-8 h-full flex flex-col overflow-hidden bg-white dark:bg-[#191919]">
-        <div className="flex justify-between items-end mb-4 shrink-0">
-          <div>
+        <div className="flex flex-wrap justify-between items-center gap-4 mb-4 shrink-0">
+          <div className="flex items-center gap-4">
+            <div>
               <h1 className="text-xl font-bold text-gray-800 dark:text-white">{greeting}, {currentUser?.name || 'Пользователь'}</h1>
               <p className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">Командный центр</p>
-          </div>
-          <div className="text-right hidden sm:block">
+            </div>
+            <div className="text-right hidden sm:block">
               <div className="text-sm font-bold text-gray-800 dark:text-white">{formattedDate}</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={onQuickCreateTask} className="p-2.5 bg-white dark:bg-[#252525] text-blue-600 dark:text-blue-400 rounded-lg text-xs font-bold hover:shadow-md transition-all flex items-center gap-1.5 shadow-sm border border-blue-100 dark:border-blue-900/30">
+              <CheckCircle2 size={18}/> Задача
+            </button>
+            <button onClick={onQuickCreateDeal} className="p-2.5 bg-white dark:bg-[#252525] text-green-600 dark:text-green-400 rounded-lg text-xs font-bold hover:shadow-md transition-all flex items-center gap-1.5 shadow-sm border border-green-100 dark:border-green-900/30">
+              <Briefcase size={18}/> Сделка
+            </button>
+            <button onClick={onQuickCreateProcess} className="p-2.5 bg-white dark:bg-[#252525] text-purple-600 dark:text-purple-400 rounded-lg text-xs font-bold hover:shadow-md transition-all flex items-center gap-1.5 shadow-sm border border-purple-100 dark:border-purple-900/30">
+              <Zap size={18}/> Процесс
+            </button>
           </div>
         </div>
 
@@ -294,21 +307,6 @@ const HomeView: React.FC<HomeViewProps> = ({
 
         {/* RIGHT COLUMN */}
         <div className="space-y-4 h-full flex flex-col overflow-y-auto custom-scrollbar">
-            {/* QUICK ACTIONS */}
-            <div className="bg-blue-50/50 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-900/30 shadow-sm p-4 shrink-0">
-                <div className="grid grid-cols-2 gap-2">
-                    <button onClick={onQuickCreateTask} className="p-3 bg-white dark:bg-[#252525] text-blue-600 dark:text-blue-400 rounded-lg text-xs font-bold hover:shadow-md transition-all flex flex-col items-center gap-1 shadow-sm border border-blue-100 dark:border-blue-900/30">
-                        <CheckCircle2 size={20}/> Задача
-                    </button>
-                    <button onClick={onQuickCreateDeal} className="p-3 bg-white dark:bg-[#252525] text-green-600 dark:text-green-400 rounded-lg text-xs font-bold hover:shadow-md transition-all flex flex-col items-center gap-1 shadow-sm border border-green-100 dark:border-green-900/30">
-                        <Briefcase size={20}/> Сделка
-                    </button>
-                    <button onClick={onQuickCreateProcess} className="p-3 bg-white dark:bg-[#252525] text-purple-600 dark:text-purple-400 rounded-lg text-xs font-bold hover:shadow-md transition-all flex flex-col items-center gap-1 shadow-sm border border-purple-100 dark:border-purple-900/30 col-span-2">
-                        <Zap size={20}/> Запустить процесс
-                    </button>
-                </div>
-            </div>
-
             {/* FINANCE */}
             {currentUser.role === Role.ADMIN && financePlan && (
                 <div className="bg-white dark:bg-[#252525] border border-gray-200 dark:border-[#333] rounded-xl p-4 shadow-sm shrink-0">
