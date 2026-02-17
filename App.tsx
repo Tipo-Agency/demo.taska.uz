@@ -19,9 +19,6 @@ const App = () => {
   const { state, actions } = useAppLogic();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [publicContentPlanId, setPublicContentPlanId] = useState<string | null>(null);
-
-  // Telegram Web App initialization - ДОЛЖЕН БЫТЬ ДО ВСЕХ УСЛОВНЫХ RETURN!
-  const [isTelegramWebApp, setIsTelegramWebApp] = useState(false);
   
   // Проверка публичной ссылки на контент-план
   useEffect(() => {
@@ -31,24 +28,6 @@ const App = () => {
       setPublicContentPlanId(match[1]);
     }
   }, []);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp) {
-      const tg = (window as any).Telegram.WebApp;
-      setIsTelegramWebApp(true);
-      tg.ready();
-      tg.expand();
-      
-      // Скрываем системные элементы Telegram, используя цвет фона
-      const bgColor = state.darkMode ? '#191919' : '#ffffff';
-      // Используем 'bg_color' чтобы header использовал цвет фона приложения
-      tg.setHeaderColor('bg_color');
-      tg.setBackgroundColor(bgColor);
-      
-      // Включаем полноэкранный режим
-      tg.enableClosingConfirmation();
-    }
-  }, [state.darkMode]);
 
   // Публичный контент-план (без авторизации)
   if (publicContentPlanId) {
@@ -79,10 +58,6 @@ const App = () => {
         height: '100vh',
         maxHeight: '100vh',
         overflow: 'hidden',
-        paddingTop: isTelegramWebApp ? 'env(safe-area-inset-top, 0px)' : '0px',
-        paddingBottom: isTelegramWebApp ? 'env(safe-area-inset-bottom, 0px)' : '0px',
-        paddingLeft: isTelegramWebApp ? 'env(safe-area-inset-left, 0px)' : '0px',
-        paddingRight: isTelegramWebApp ? 'env(safe-area-inset-right, 0px)' : '0px',
       }}
     >
         {/* Sidebar */}
@@ -181,7 +156,6 @@ const App = () => {
                 automationRules={state.automationRules}
                 settingsActiveTab={state.settingsActiveTab}
                 activeSpaceTab={state.activeSpaceTab}
-                telegramBotToken={state.telegramBotToken}
                 notificationPrefs={state.notificationPrefs}
                 actions={actions}
             />

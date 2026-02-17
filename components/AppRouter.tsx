@@ -72,7 +72,6 @@ interface AppRouterProps {
   salesFunnels?: SalesFunnel[];
   settingsActiveTab?: string;
   activeSpaceTab?: 'content-plan' | 'backlog' | 'functionality';
-  telegramBotToken?: string;
   notificationPrefs?: NotificationPreferences;
   actions: any;
 }
@@ -191,8 +190,6 @@ export const AppRouter: React.FC<AppRouterProps> = (props) => {
               onSaveDepartment={actions.saveDepartment} onDeleteDepartment={actions.deleteDepartment}
               onSaveFinanceCategory={actions.saveFinanceCategory} onDeleteFinanceCategory={actions.deleteFinanceCategory}
               onSaveSalesFunnel={actions.saveSalesFunnel} onDeleteSalesFunnel={actions.deleteSalesFunnel}
-              onUpdateTelegramBotToken={actions.onUpdateTelegramBotToken}
-              telegramBotToken={props.telegramBotToken}
               notificationPrefs={props.notificationPrefs}
               onRestoreTask={actions.restoreTask}
               onPermanentDelete={actions.permanentDeleteTask}

@@ -4,8 +4,9 @@
  */
 
 import { User, NotificationPreferences, Task, Deal, Client, Contract, Doc, Meeting, Role } from '../types';
-import { getUserTelegramChatId } from './telegramService';
-import { api } from '../backend/api';
+// Telegram-интеграции отключены в локальной демо-версии
+// import { getUserTelegramChatId } from './telegramService';
+// import { api } from '../backend/api';
 import {
   createTaskCreatedLog,
   createTaskStatusChangedLog,
@@ -61,77 +62,7 @@ export const notifyTaskCreated = async (
       await createTaskCreatedLog(task, currentUser, assigneeUser, allUsers);
     }
 
-    // Telegram уведомление
-    // ВСЕ УВЕДОМЛЕНИЯ БАЗОВО АКТИВНЫ - если настройка не указана, считаем что она включена
-    const newTaskSetting = notificationPrefs?.newTask || { telegramPersonal: true, telegramGroup: false };
-    
-    console.log('[NOTIFICATION] notifyTaskCreated:', {
-      skipTelegram,
-      newTaskSetting,
-      hasAssignee: !!assigneeUser,
-      assigneeId: assigneeUser?.id,
-      assigneeTelegramUserId: assigneeUser?.telegramUserId,
-      creatorId: task.createdByUserId || currentUser?.id,
-      hasNotificationPrefs: !!notificationPrefs
-    });
-    
-    // Отправляем уведомления через очередь бота (токен берется из .env на сервере)
-    if (!skipTelegram && newTaskSetting.telegramPersonal !== false) {
-      const assigneeName = assigneeUser ? assigneeUser.name : 'Не назначено';
-      const message = formatNewTaskMessage(task.title, task.priority, task.endDate, assigneeName, null);
-      
-      // Добавляем задачу в очередь для исполнителя (если назначен)
-      if (assigneeUser) {
-        const assigneeTelegramChatId = getUserTelegramChatId(assigneeUser);
-        if (assigneeTelegramChatId) {
-          try {
-            await api.notificationQueue.add({
-              type: 'taskCreated',
-              userId: assigneeUser.id,
-              message,
-              chatId: assigneeTelegramChatId,
-              metadata: { taskId: task.id, taskTitle: task.title }
-            });
-            console.log('[NOTIFICATION] Task notification queued for assignee:', assigneeUser.id);
-          } catch (error) {
-            console.error('[NOTIFICATION] Error queueing notification for assignee:', error);
-          }
-        } else {
-          console.warn('[NOTIFICATION] Assignee has no telegramUserId - user needs to login to bot:', {
-            assigneeId: assigneeUser.id,
-            assigneeName: assigneeUser.name
-          });
-        }
-      }
-      
-      // Также добавляем задачу для создателя, если он не является исполнителем
-      const creatorId = task.createdByUserId || currentUser?.id;
-      if (creatorId && (!assigneeUser || assigneeUser.id !== creatorId)) {
-        const creatorUser = allUsers.find(u => u.id === creatorId);
-        if (creatorUser) {
-          const creatorTelegramChatId = getUserTelegramChatId(creatorUser);
-          if (creatorTelegramChatId) {
-            try {
-              await api.notificationQueue.add({
-                type: 'taskCreated',
-                userId: creatorId,
-                message,
-                chatId: creatorTelegramChatId,
-                metadata: { taskId: task.id, taskTitle: task.title }
-              });
-              console.log('[NOTIFICATION] Task notification queued for creator:', creatorId);
-            } catch (error) {
-              console.error('[NOTIFICATION] Error queueing notification for creator:', error);
-            }
-          } else {
-            console.warn('[NOTIFICATION] Creator has no telegramUserId - user needs to login to bot:', {
-              creatorId,
-              creatorName: creatorUser.name
-            });
-          }
-        }
-      }
-    }
+    // Telegram-уведомления отключены в локальной демо-версии
   } catch (error) {
     console.error('[NOTIFICATION] Error notifying task created:', error);
   }

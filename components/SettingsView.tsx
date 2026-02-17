@@ -212,8 +212,6 @@ interface SettingsViewProps {
   onDeleteFinanceCategory?: (id: string) => void;
   onSaveSalesFunnel?: (funnel: SalesFunnel) => void;
   onDeleteSalesFunnel?: (id: string) => void;
-  onUpdateTelegramBotToken?: (token: string) => void;
-  telegramBotToken?: string;
   notificationPrefs?: NotificationPreferences;
   
   initialTab?: string;
@@ -233,7 +231,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
   financeCategories = [], onSaveFinanceCategory, onDeleteFinanceCategory,
   salesFunnels = [], onSaveSalesFunnel, onDeleteSalesFunnel,
   employeeInfos = [], deals = [], clients = [], contracts = [], meetings = [], businessProcesses = [],
-  onUpdateTelegramBotToken, telegramBotToken, notificationPrefs, onClose
+  notificationPrefs, onClose
 }) => {
   const [activeTab, setActiveTab] = useState<string>(initialTab);
   

@@ -90,7 +90,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const [autoTarget, setAutoTarget] = useState<'assignee' | 'admin'>('assignee');
 
   // Integrations
-  const [employeeBotToken, setEmployeeBotToken] = useState('');
   const [clientBotToken, setClientBotToken] = useState('');
   const [chatId, setChatId] = useState('');
   const [enableTelegramImport, setEnableTelegramImport] = useState(false);
@@ -99,7 +98,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const [prefs, setPrefs] = useState<NotificationPreferences>(DEFAULT_NOTIFICATION_PREFS);
 
   useEffect(() => {
-      setEmployeeBotToken(storageService.getEmployeeBotToken());
       setClientBotToken(storageService.getClientBotToken());
       setChatId(storageService.getTelegramChatId());
       setEnableTelegramImport(storageService.getEnableTelegramImport());
@@ -295,10 +293,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   // --- Integrations ---
-  const handleSaveEmployeeBot = () => { storageService.setEmployeeBotToken(employeeBotToken); alert('Токен сотрудников сохранен'); };
-  const handleSaveClientBot = () => { storageService.setClientBotToken(clientBotToken); alert('Токен клиентов сохранен'); };
-  const handleSaveChatId = () => { storageService.setTelegramChatId(chatId); alert('Chat ID сохранен'); };
-  const handleToggleTelegramImport = () => { const newVal = !enableTelegramImport; setEnableTelegramImport(newVal); storageService.setEnableTelegramImport(newVal); };
+  const handleSaveEmployeeBot = () => {};
+  const handleSaveClientBot = () => {};
+  const handleSaveChatId = () => {};
+  const handleToggleTelegramImport = () => {};
   
   const handleSimulateLead = (source: 'instagram' | 'site' | 'telegram') => {
       if (!onSaveDeal || !currentUser) return;

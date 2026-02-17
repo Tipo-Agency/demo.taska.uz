@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Department, Warehouse, InventoryItem, StockBalance, StockMovement, InventoryRevision } from '../types';
 import { Layers, Plus } from 'lucide-react';
+import { Button } from './ui/Button';
 
 const PRIMARY_COLOR = '#267022';
 
@@ -190,13 +191,9 @@ const InventoryView: React.FC<InventoryViewProps> = ({
               </div>
             </div>
             {activeTab === 'items' && (
-              <button
-                onClick={handleCreateItem}
-                className="px-4 py-2 rounded-lg text-white text-sm font-medium flex items-center gap-2 shadow-sm hover:opacity-90"
-                style={{ backgroundColor: PRIMARY_COLOR }}
-              >
-                <Plus size={18} /> Создать
-              </button>
+              <Button variant="primary" size="sm" icon={Plus} onClick={handleCreateItem}>
+                Создать
+              </Button>
             )}
           </div>
         </div>
@@ -294,13 +291,9 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                   placeholder={currentDepartment ? `Новый склад (${currentDepartment.name})` : 'Новый склад'}
                   className="border border-gray-200 dark:border-[#333] rounded-lg px-3 py-1.5 text-sm bg-white dark:bg-[#252525] text-gray-800 dark:text-gray-100"
                 />
-                <button
-                  className="px-3 py-1.5 rounded-lg text-white text-xs font-medium hover:opacity-90"
-                  style={{ backgroundColor: PRIMARY_COLOR }}
-                  onClick={handleCreateWarehouse}
-                >
+                <Button variant="primary" size="sm" onClick={handleCreateWarehouse}>
                   Добавить склад
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -369,13 +362,9 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                 placeholder="Комментарий"
                 className="border border-gray-200 dark:border-[#333] rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-[#252525] text-gray-800 dark:text-gray-100 flex-1"
               />
-              <button
-                className="px-3 py-1.5 rounded-lg text-white text-xs font-medium hover:opacity-90"
-                style={{ backgroundColor: PRIMARY_COLOR }}
-                onClick={handleCreateItem}
-              >
+              <Button variant="primary" size="sm" onClick={handleCreateItem}>
                 Добавить
-              </button>
+              </Button>
             </div>
 
             <div className="flex-1 overflow-auto custom-scrollbar min-h-0">
@@ -477,13 +466,9 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                 placeholder="Комментарий"
                 className="border border-gray-200 dark:border-[#333] rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-[#252525] text-gray-800 dark:text-gray-100 flex-1"
               />
-              <button
-                className="px-3 py-1.5 rounded-lg text-white text-xs font-medium hover:opacity-90"
-                style={{ backgroundColor: PRIMARY_COLOR }}
-                onClick={handleCreateMovement}
-              >
+              <Button variant="primary" size="sm" onClick={handleCreateMovement}>
                 Провести
-              </button>
+              </Button>
             </div>
 
             <div className="flex-1 overflow-auto custom-scrollbar min-h-0">
@@ -538,17 +523,18 @@ const InventoryView: React.FC<InventoryViewProps> = ({
             <div className="border-b border-gray-100 dark:border-[#333] px-4 py-3 flex flex-wrap items-center gap-3 shrink-0">
               <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Ревизии</span>
               {onCreateRevision && (
-                <button
-                  className="px-3 py-1.5 rounded-lg text-white text-xs font-medium hover:opacity-90"
-                  style={{ backgroundColor: PRIMARY_COLOR }}
+                <Button
+                  variant="primary"
+                  size="sm"
+                  icon={Plus}
                   onClick={() => {
                     const whId = selectedWarehouseId || filteredWarehouses[0]?.id;
                     if (!whId) { alert('Выберите склад'); return; }
                     onCreateRevision({ warehouseId: whId, date: new Date().toISOString().slice(0, 10), createdByUserId: currentUserId });
                   }}
                 >
-                  <Plus size={14} className="inline mr-1" /> Новая ревизия
-                </button>
+                  Новая ревизия
+                </Button>
               )}
             </div>
             <div className="flex-1 overflow-auto custom-scrollbar min-h-0 p-4">
@@ -578,9 +564,9 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                               >
                                 {isEditing ? 'Свернуть' : 'Редактировать'}
                               </button>
-                              <button
-                                className="px-2 py-1 rounded text-white text-xs"
-                                style={{ backgroundColor: PRIMARY_COLOR }}
+                              <Button
+                                variant="secondary"
+                                size="sm"
                                 onClick={() => {
                                   const whBalances = balances.filter(b => b.warehouseId === rev.warehouseId);
                                   const lines = whBalances.map(b => ({ itemId: b.itemId, quantitySystem: b.quantity, quantityFact: b.quantity }));
@@ -588,14 +574,15 @@ const InventoryView: React.FC<InventoryViewProps> = ({
                                 }}
                               >
                                 Подтянуть остатки
-                              </button>
+                              </Button>
                               {onPostRevision && (
-                                <button
-                                  className="px-2 py-1 rounded bg-green-600 text-white text-xs hover:bg-green-700"
+                                <Button
+                                  variant="primary"
+                                  size="sm"
                                   onClick={() => onPostRevision(rev.id, currentUserId)}
                                 >
                                   Провести
-                                </button>
+                                </Button>
                               )}
                             </div>
                           )}

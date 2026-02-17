@@ -59,11 +59,24 @@ export function runSeed(): void {
   ]);
 
   // Tasks (status/priority — названия из справочников)
-  localStoreService.setAll('tasks', [
+  const baseTasks = [
     { id: 'task1', tableId: 't1', title: 'Подготовить КП', entityType: 'task', status: 'В работе', priority: 'Средний', assigneeId: demoUserId, startDate: today(), endDate: today(), createdAt: now() },
     { id: 'task2', tableId: 't1', title: 'Созвон с клиентом', entityType: 'task', status: 'Не начато', priority: 'Высокий', assigneeId: 'u2', startDate: today(), endDate: today(), createdAt: now() },
     { id: 'task3', tableId: 't1', title: 'Обновить лендинг', entityType: 'task', status: 'Выполнено', priority: 'Средний', assigneeId: demoUserId, startDate: today(), endDate: today(), createdAt: now() },
-  ]);
+  ];
+  const extraTasks = Array.from({ length: 20 }).map((_, i) => ({
+    id: `task_extra_${i + 1}`,
+    tableId: 't1',
+    title: `Демо задача ${i + 1}`,
+    entityType: 'task',
+    status: i % 3 === 0 ? 'Не начато' : i % 3 === 1 ? 'В работе' : 'Выполнено',
+    priority: i % 3 === 0 ? 'Низкий' : i % 3 === 1 ? 'Средний' : 'Высокий',
+    assigneeId: i % 2 === 0 ? demoUserId : 'u2',
+    startDate: today(),
+    endDate: today(),
+    createdAt: now(),
+  }));
+  localStoreService.setAll('tasks', [...baseTasks, ...extraTasks]);
 
   // Sales funnels
   localStoreService.setAll('salesFunnels', [
@@ -86,10 +99,22 @@ export function runSeed(): void {
   ]);
 
   // Deals (CRM: title, stage, assigneeId, funnelId)
-  localStoreService.setAll('deals', [
+  const baseDeals = [
     { id: 'deal1', title: 'Разработка сайта', clientId: 'c1', amount: 5000000, currency: 'UZS', stage: 'st2', funnelId: 'f1', assigneeId: demoUserId, createdAt: now() },
     { id: 'deal2', title: 'Реклама Instagram', clientId: 'c2', amount: 1200000, currency: 'UZS', stage: 'st1', funnelId: 'f1', assigneeId: 'u2', createdAt: now() },
-  ]);
+  ];
+  const extraDeals = Array.from({ length: 10 }).map((_, i) => ({
+    id: `deal_extra_${i + 1}`,
+    title: `Демо сделка ${i + 1}`,
+    clientId: i % 2 === 0 ? 'c1' : 'c2',
+    amount: 1000000 + i * 150000,
+    currency: 'UZS',
+    stage: i % 4 === 0 ? 'st1' : i % 4 === 1 ? 'st2' : i % 4 === 2 ? 'st3' : 'st4',
+    funnelId: 'f1',
+    assigneeId: i % 2 === 0 ? demoUserId : 'u2',
+    createdAt: now(),
+  }));
+  localStoreService.setAll('deals', [...baseDeals, ...extraDeals]);
 
   // Employee infos
   localStoreService.setAll('employeeInfos', [
@@ -109,14 +134,36 @@ export function runSeed(): void {
   ]);
 
   // Meetings
-  localStoreService.setAll('meetings', [
+  const baseMeetings = [
     { id: 'm1', tableId: 't1', title: 'Планерка', date: today(), time: '10:00', participantIds: [demoUserId, 'u2'], summary: 'Еженедельный созвон', type: 'work' },
-  ]);
+  ];
+  const extraMeetings = Array.from({ length: 5 }).map((_, i) => ({
+    id: `m_extra_${i + 1}`,
+    tableId: 't1',
+    title: `Встреча с клиентом ${i + 1}`,
+    date: today(),
+    time: `1${i}:00`,
+    participantIds: [demoUserId],
+    summary: 'Демо встреча',
+    type: 'client' as const,
+  }));
+  localStoreService.setAll('meetings', [...baseMeetings, ...extraMeetings]);
 
   // Content posts
-  localStoreService.setAll('contentPosts', [
+  const basePosts = [
     { id: 'cp1', tableId: 't2', topic: 'Акция лето', description: 'Пост про скидки', date: today(), platform: ['instagram'], format: 'post', status: 'idea' },
-  ]);
+  ];
+  const extraPosts = Array.from({ length: 10 }).map((_, i) => ({
+    id: `cp_extra_${i + 1}`,
+    tableId: 't2',
+    topic: `Пост ${i + 1}`,
+    description: 'Демо контент',
+    date: today(),
+    platform: ['instagram'],
+    format: 'post' as const,
+    status: 'idea' as const,
+  }));
+  localStoreService.setAll('contentPosts', [...basePosts, ...extraPosts]);
 
   // Activity
   localStoreService.setAll('activity', [
@@ -145,16 +192,37 @@ export function runSeed(): void {
   localStoreService.setAll('warehouses', [
     { id: 'wh1', name: 'Основной склад', departmentId: 'd1' },
     { id: 'wh2', name: 'Склад маркетинга', departmentId: 'd2' },
+    { id: 'wh3', name: 'Склад мерча', departmentId: 'd2' },
   ]);
-  localStoreService.setAll('inventoryItems', [
+  const baseItems = [
     { id: 'it1', sku: '001', name: 'Блокнот А4', unit: 'шт', category: 'Канцтовары' },
     { id: 'it2', sku: '002', name: 'Ручка синяя', unit: 'шт', category: 'Канцтовары' },
     { id: 'it3', sku: '003', name: 'Мерч (футболка)', unit: 'шт', category: 'Мерч' },
-  ]);
-  localStoreService.setAll('stockMovements', [
+  ];
+  const extraItems = Array.from({ length: 20 }).map((_, i) => ({
+    id: `it_extra_${i + 1}`,
+    sku: `${100 + i}`,
+    name: `Товар ${i + 1}`,
+    unit: 'шт',
+    category: i % 2 === 0 ? 'Канцтовары' : 'Мерч',
+  }));
+  localStoreService.setAll('inventoryItems', [...baseItems, ...extraItems]);
+
+  const baseMovements = [
     { id: 'mv1', type: 'receipt', date: now(), toWarehouseId: 'wh1', items: [{ itemId: 'it1', quantity: 50 }, { itemId: 'it2', quantity: 100 }], reason: 'Оприходование', createdByUserId: demoUserId },
     { id: 'mv2', type: 'receipt', date: now(), toWarehouseId: 'wh1', items: [{ itemId: 'it3', quantity: 20 }], reason: 'Поступление мерча', createdByUserId: demoUserId },
-  ]);
+  ];
+  const extraMovements = Array.from({ length: 15 }).map((_, i) => ({
+    id: `mv_extra_${i + 1}`,
+    type: i % 3 === 0 ? 'transfer' : i % 3 === 1 ? 'writeoff' : 'receipt',
+    date: now(),
+    fromWarehouseId: i % 3 === 0 || i % 3 === 1 ? 'wh1' : undefined,
+    toWarehouseId: i % 3 === 0 || i % 3 === 2 ? (i % 2 === 0 ? 'wh2' : 'wh3') : undefined,
+    items: [{ itemId: i % 2 === 0 ? 'it1' : 'it2', quantity: 5 + i }],
+    reason: 'Демо операция',
+    createdByUserId: demoUserId,
+  }));
+  localStoreService.setAll('stockMovements', [...baseMovements, ...extraMovements]);
   localStoreService.setAll('inventoryRevisions', []);
 
   localStorage.setItem(SEED_FLAG, '1');

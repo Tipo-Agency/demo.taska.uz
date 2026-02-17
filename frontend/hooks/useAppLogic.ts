@@ -248,75 +248,6 @@ export const useAppLogic = () => {
 
   // Данные хранятся локально, загружаются по требованию
 
-  // Telegram polling для CRM модуля
-  // ⚠️ ВАЖНО: ПОЛНОСТЬЮ ОТКЛЮЧЕНО для избежания конфликта 409
-  // 
-  // ПРОБЛЕМА: getUpdates может использоваться только одним клиентом для одного токена
-  // Бот на сервере уже использует polling (application.run_polling) с токеном из .env (GitHub Secrets)
-  // Поэтому фронтенд НЕ должен делать getUpdates - это вызовет конфликт 409
-  //
-  // РЕШЕНИЕ: Для получения лидов из Telegram используйте:
-  // 1. Отдельный бот с другим токеном (клиентский бот) - тогда polling будет работать
-  // 2. Или webhook вместо polling
-  // 3. Или получайте лиды через бота на сервере (бот может отправлять данные в систему)
-  //
-  // ОТПРАВКА СООБЩЕНИЙ (sendMessage) работает нормально - не требует getUpdates
-  // Можно отправлять и в группу, и лично - это не вызывает конфликт!
-  useEffect(() => {
-    if (!loadedModulesRef.current.has('crm')) return; // Работает только если CRM модуль загружен
-    
-    // ПОЛНОСТЬЮ ОТКЛЮЧАЕМ polling из фронтенда
-    // Бот на сервере уже использует polling с токеном из .env (GitHub Secrets)
-    // Фронтенд НЕ должен делать getUpdates с тем же токеном
-    console.warn('[TELEGRAM] ⚠️ Polling ПОЛНОСТЬЮ отключен на фронтенде');
-    console.warn('[TELEGRAM] Бот на сервере использует polling с токеном из GitHub Secrets');
-    console.warn('[TELEGRAM] Для получения лидов создайте отдельного клиентского бота с другим токеном');
-    
-    // Polling полностью отключен - не создаем interval
-    // Если в будущем понадобится polling для клиентского бота - раскомментируйте код ниже
-    /*
-    const clientBotToken = storageService.getClientBotToken()?.trim() || '';
-    if (!clientBotToken) {
-      return;
-    }
-    
-    const tgPollInterval = setInterval(async () => {
-        if (!storageService.getEnableTelegramImport()) return;
-        const updates = await pollTelegramUpdates();
-        if (updates.newDeals.length > 0 || updates.newMessages.length > 0) {
-            if (updates.newDeals.length > 0) {
-                const currentDeals = await api.deals.getAll();
-                const mergedDeals = [...currentDeals, ...updates.newDeals];
-                crmSlice.setters.setDeals(mergedDeals);
-                await api.deals.updateAll(mergedDeals);
-                showNotification(`Новых лидов из Telegram: ${updates.newDeals.length}`);
-            }
-            if (updates.newMessages.length > 0) {
-                const currentDeals = await api.deals.getAll();
-                const updatedDeals = currentDeals.map(d => {
-                    const msgs = updates.newMessages.filter(m => m.dealId === d.id);
-                    if (msgs.length > 0) {
-                        const newComments: Comment[] = msgs.map(m => ({
-                            id: `cm-${Date.now()}-${Math.random()}`,
-                            text: m.text,
-                            authorId: 'telegram_user',
-                            createdAt: new Date().toISOString(),
-                            type: 'telegram_in'
-                        }));
-                        return { ...d, comments: [...(d.comments || []), ...newComments] };
-                    }
-                    return d;
-                });
-                crmSlice.setters.setDeals(updatedDeals);
-                await api.deals.updateAll(updatedDeals);
-                showNotification(`Новых сообщений: ${updates.newMessages.length}`);
-            }
-        }
-    }, 10000);
-    return () => clearInterval(tgPollInterval);
-    */
-  }, [loadedModules]);
-
   // Instagram синхронизация для воронок с подключенным Instagram
   useEffect(() => {
     if (!loadedModulesRef.current.has('crm')) return; // Работает только если CRM модуль загружен
@@ -632,7 +563,7 @@ export const useAppLogic = () => {
       orgPositions: bpmSlice.state.orgPositions, businessProcesses: bpmSlice.state.businessProcesses,
       warehouses: inventorySlice.state.warehouses, inventoryItems: inventorySlice.state.items, inventoryMovements: inventorySlice.state.movements, inventoryBalances: inventorySlice.state.balances, inventoryRevisions: inventorySlice.state.revisions,
       salesFunnels: salesFunnels,
-      darkMode: settingsSlice.state.darkMode, tables: settingsSlice.state.tables, activityLogs: settingsSlice.state.activityLogs, currentView: settingsSlice.state.currentView, activeTableId: settingsSlice.state.activeTableId, viewMode: settingsSlice.state.viewMode, searchQuery: settingsSlice.state.searchQuery, settingsActiveTab: settingsSlice.state.settingsActiveTab, isCreateTableModalOpen: settingsSlice.state.isCreateTableModalOpen, createTableType: settingsSlice.state.createTableType, isEditTableModalOpen: settingsSlice.state.isEditTableModalOpen, editingTable: settingsSlice.state.editingTable, notificationPrefs: settingsSlice.state.notificationPrefs, automationRules: settingsSlice.state.automationRules, activeSpaceTab: settingsSlice.state.activeSpaceTab, telegramBotToken: storageService.getEmployeeBotToken() || '',
+      darkMode: settingsSlice.state.darkMode, tables: settingsSlice.state.tables, activityLogs: settingsSlice.state.activityLogs, currentView: settingsSlice.state.currentView, activeTableId: settingsSlice.state.activeTableId, viewMode: settingsSlice.state.viewMode, searchQuery: settingsSlice.state.searchQuery, settingsActiveTab: settingsSlice.state.settingsActiveTab, isCreateTableModalOpen: settingsSlice.state.isCreateTableModalOpen, createTableType: settingsSlice.state.createTableType, isEditTableModalOpen: settingsSlice.state.isEditTableModalOpen, editingTable: settingsSlice.state.editingTable, notificationPrefs: settingsSlice.state.notificationPrefs, automationRules: settingsSlice.state.automationRules, activeSpaceTab: settingsSlice.state.activeSpaceTab,
       activeTable: settingsSlice.state.tables.find(t => t.id === settingsSlice.state.activeTableId), activeDoc: contentSlice.state.docs.find(d => d.id === contentSlice.state.activeDocId)
     },
     actions: {
@@ -986,7 +917,7 @@ export const useAppLogic = () => {
               showNotification('Ошибка восстановления встречи');
           }
       },
-      toggleDarkMode: settingsSlice.actions.toggleDarkMode, createTable: createTableWrapper, updateTable: settingsSlice.actions.updateTable, deleteTable: settingsSlice.actions.deleteTable, markAllRead: settingsSlice.actions.markAllRead, navigate: settingsSlice.actions.navigate, openSettings: settingsSlice.actions.openSettings, closeSettings: settingsSlice.actions.closeSettings, openCreateTable: settingsSlice.actions.openCreateTable, closeCreateTable: settingsSlice.actions.closeCreateTable, openEditTable: settingsSlice.actions.openEditTable, closeEditTable: settingsSlice.actions.closeEditTable, updateNotificationPrefs: settingsSlice.actions.updateNotificationPrefs, saveAutomationRule: settingsSlice.actions.saveAutomationRule, deleteAutomationRule: settingsSlice.actions.deleteAutomationRule, setActiveSpaceTab: settingsSlice.actions.setActiveSpaceTab, onUpdateTelegramBotToken: (token: string) => { storageService.setEmployeeBotToken(token); },
+      toggleDarkMode: settingsSlice.actions.toggleDarkMode, createTable: createTableWrapper, updateTable: settingsSlice.actions.updateTable, deleteTable: settingsSlice.actions.deleteTable, markAllRead: settingsSlice.actions.markAllRead, navigate: settingsSlice.actions.navigate, openSettings: settingsSlice.actions.openSettings, closeSettings: settingsSlice.actions.closeSettings, openCreateTable: settingsSlice.actions.openCreateTable, closeCreateTable: settingsSlice.actions.closeCreateTable, openEditTable: settingsSlice.actions.openEditTable, closeEditTable: settingsSlice.actions.closeEditTable, updateNotificationPrefs: settingsSlice.actions.updateNotificationPrefs, saveAutomationRule: settingsSlice.actions.saveAutomationRule, deleteAutomationRule: settingsSlice.actions.deleteAutomationRule, setActiveSpaceTab: settingsSlice.actions.setActiveSpaceTab,
       setActiveTableId: settingsSlice.setters.setActiveTableId, setCurrentView: settingsSlice.setters.setCurrentView, setViewMode: settingsSlice.setters.setViewMode, setSearchQuery: settingsSlice.setters.setSearchQuery,
       // Функция fillMockData полностью удалена
     }

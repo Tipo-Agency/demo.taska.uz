@@ -96,26 +96,17 @@ export const storageService = {
   setActiveUserId: (id: string) => localStorage.setItem(STORAGE_KEYS.ACTIVE_USER_ID, id),
   clearActiveUserId: () => localStorage.removeItem(STORAGE_KEYS.ACTIVE_USER_ID),
 
-  getTelegramChatId: (): string => localStorage.getItem(STORAGE_KEYS.TELEGRAM_CHAT_ID) || '',
-  setTelegramChatId: (id: string) => localStorage.setItem(STORAGE_KEYS.TELEGRAM_CHAT_ID, id),
+  getTelegramChatId: (): string => '',
+  setTelegramChatId: (_id: string) => {},
 
-  // Bot Tokens
-  // ВАЖНО: Токен бота теперь берется только из .env на сервере (через GitHub Secrets)
-  // В браузере токен НЕ используется для polling (только для отправки сообщений)
-  // Polling делается только ботом на сервере
-  getEmployeeBotToken: (): string => {
-    // Токен для отправки уведомлений (берется из localStorage если установлен, иначе пустая строка)
-    // НЕ используем TELEGRAM_BOT_TOKEN из constants - это только для сервера
-    return localStorage.getItem(STORAGE_KEYS.TELEGRAM_EMPLOYEE_TOKEN) || '';
-  },
-  setEmployeeBotToken: (t: string) => localStorage.setItem(STORAGE_KEYS.TELEGRAM_EMPLOYEE_TOKEN, t),
-  
-  getClientBotToken: (): string => localStorage.getItem(STORAGE_KEYS.TELEGRAM_CLIENT_TOKEN) || '',
-  setClientBotToken: (t: string) => localStorage.setItem(STORAGE_KEYS.TELEGRAM_CLIENT_TOKEN, t),
+  // Telegram интеграции отключены в локальной демо-версии
+  getEmployeeBotToken: (): string => '',
+  setEmployeeBotToken: (_t: string) => {},
+  getClientBotToken: (): string => '',
+  setClientBotToken: (_t: string) => {},
 
-  // Telegram Direct Integration Settings
-  getLastTelegramUpdateId: (): number => getLocal(STORAGE_KEYS.LAST_TELEGRAM_UPDATE_ID, 0),
-  setLastTelegramUpdateId: (id: number) => setLocal(STORAGE_KEYS.LAST_TELEGRAM_UPDATE_ID, id),
+  getLastTelegramUpdateId: (): number => 0,
+  setLastTelegramUpdateId: (_id: number) => {},
 
   // Inventory Local Accessors - @deprecated
   /**
