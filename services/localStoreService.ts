@@ -50,4 +50,9 @@ export const localStoreService = {
     writeCollection(collectionName, items);
     return true;
   },
+
+  /** Записать весь массив в коллекцию (для сида мок-данных) */
+  setAll: (collectionName: string, items: any[]): void => {
+    writeCollection(collectionName, items);
+  },
 };
