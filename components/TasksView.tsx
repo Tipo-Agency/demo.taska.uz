@@ -221,9 +221,9 @@ export const TasksView: React.FC<TasksViewProps> = ({
             </div>
           </div>
 
-          {/* Переключение видов */}
+          {/* Переключение видов — ширина как в воронке (inline) */}
           <div className="mb-4">
-            <div className="flex items-center gap-2 bg-gray-100 dark:bg-[#252525] rounded-full p-1 text-xs mb-4">
+            <div className="inline-flex items-center gap-2 bg-gray-100 dark:bg-[#252525] rounded-full p-1 text-xs mb-4">
               <button
                 onClick={() => setViewMode(ViewMode.TABLE)}
                 className={`px-3 py-1.5 rounded-full ${
@@ -294,8 +294,8 @@ export const TasksView: React.FC<TasksViewProps> = ({
         </div>
       </div>
       
-      <div className="flex-1 min-h-0 overflow-hidden">
-        <div className="max-w-7xl mx-auto w-full px-6 pb-20 h-full">
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+        <div className="max-w-7xl mx-auto w-full px-6 pb-24 h-full">
           {viewMode === ViewMode.TABLE && (
             <TableView
               tasks={filteredTasks}

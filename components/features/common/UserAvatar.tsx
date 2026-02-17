@@ -37,6 +37,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   className = '',
 }) => {
   const [imgFailed, setImgFailed] = React.useState(false);
+  if (!user?.name) return null;
   const initials = user.name
     .split(' ')
     .map(n => n[0])

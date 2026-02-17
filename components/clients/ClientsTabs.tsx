@@ -8,7 +8,7 @@ interface ClientsTabsProps {
 export const ClientsTabs: React.FC<ClientsTabsProps> = ({ activeTab, onTabChange }) => {
   return (
     <div className="mb-6">
-      <div className="flex items-center gap-2 bg-gray-100 dark:bg-[#252525] rounded-full p-1 text-xs">
+      <div className="inline-flex items-center gap-2 bg-gray-100 dark:bg-[#252525] rounded-full p-1 text-xs">
         <button
           onClick={() => onTabChange('clients')}
           className={`px-3 py-2 rounded-full flex items-center gap-1 min-h-[44px] ${

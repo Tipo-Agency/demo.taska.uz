@@ -1,13 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
-import { Project, Role, Task, User, StatusOption, PriorityOption, NotificationPreferences, AutomationRule, TableCollection, Deal, Department, FinanceCategory, SalesFunnel, Doc, ContentPost, EmployeeInfo, Client, Contract, BusinessProcess, Meeting } from '../types';
-import { User as UserIcon, Briefcase, Archive, List, BarChart2, Bell, Zap, Users, Building2, Wallet, TrendingUp, X, Layout } from 'lucide-react';
+import { Project, Role, Task, User, StatusOption, PriorityOption, NotificationPreferences, AutomationRule, TableCollection, Deal, Department, FinanceCategory, Fund, SalesFunnel, Doc, ContentPost, EmployeeInfo, Client, Contract, BusinessProcess, Meeting } from '../types';
+import { User as UserIcon, Briefcase, Archive, List, BarChart2, Bell, Zap, Users, Building2, Wallet, TrendingUp, X, Layout, PiggyBank } from 'lucide-react';
 import { ProfileSettings } from './settings/ProfileSettings';
 import { SpaceSettings } from './settings/SpaceSettings';
 import { AutomationSettings } from './settings/AutomationSettings';
 import DepartmentsView from './DepartmentsView';
 import { storageService } from '../services/storageService';
 import FinanceCategoriesSettings from './settings/FinanceCategoriesSettings';
+import FundsSettings from './settings/FundsSettings';
 import SalesFunnelsSettings from './settings/SalesFunnelsSettings';
 
 // Компонент для отображения архива с вкладками
@@ -166,6 +167,7 @@ interface SettingsViewProps {
   currentUser?: User;
   departments?: Department[];
   financeCategories?: FinanceCategory[];
+  funds?: Fund[];
   salesFunnels?: SalesFunnel[];
   employeeInfos?: EmployeeInfo[];
   deals?: Deal[];
@@ -210,6 +212,8 @@ interface SettingsViewProps {
   onDeleteDepartment?: (id: string) => void;
   onSaveFinanceCategory?: (cat: FinanceCategory) => void;
   onDeleteFinanceCategory?: (id: string) => void;
+  onSaveFund?: (fund: Fund) => void;
+  onDeleteFund?: (id: string) => void;
   onSaveSalesFunnel?: (funnel: SalesFunnel) => void;
   onDeleteSalesFunnel?: (id: string) => void;
   notificationPrefs?: NotificationPreferences;
@@ -229,6 +233,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
   currentUser, onUpdateProfile, initialTab = 'users',
   onSaveDeal, departments = [], onSaveDepartment, onDeleteDepartment,
   financeCategories = [], onSaveFinanceCategory, onDeleteFinanceCategory,
+  funds = [], onSaveFund, onDeleteFund,
   salesFunnels = [], onSaveSalesFunnel, onDeleteSalesFunnel,
   employeeInfos = [], deals = [], clients = [], contracts = [], meetings = [], businessProcesses = [],
   notificationPrefs, onClose
@@ -261,6 +266,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
           <TabButton id="spaces" label="Проекты" icon={<Briefcase size={16}/>} />
           <TabButton id="departments" label="Подразделения" icon={<Building2 size={16}/>} />
           <TabButton id="finance-categories" label="Статьи расходов" icon={<Wallet size={16}/>} />
+          <TabButton id="funds" label="Фонды" icon={<PiggyBank size={16}/>} />
           <TabButton id="sales-funnels" label="Воронки продаж" icon={<TrendingUp size={16}/>} />
           
           <div className="text-xs font-bold text-gray-400 dark:text-gray-600 px-3 mt-6 mb-2 uppercase">ЗАДАЧИ</div>
@@ -282,6 +288,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
           {activeTab === 'spaces' && <SpaceSettings activeTab="projects" tables={tables} projects={projects} statuses={statuses} priorities={priorities} onUpdateTable={onUpdateTable!} onCreateTable={onCreateTable!} onDeleteTable={onDeleteTable!} onUpdateProjects={onUpdateProjects} onUpdateStatuses={onUpdateStatuses} onUpdatePriorities={onUpdatePriorities} />}
           {activeTab === 'departments' && <DepartmentsView departments={departments} users={users} onSave={onSaveDepartment!} onDelete={onDeleteDepartment!} />}
           {activeTab === 'finance-categories' && <FinanceCategoriesSettings categories={financeCategories} onSave={onSaveFinanceCategory!} onDelete={onDeleteFinanceCategory!} />}
+          {activeTab === 'funds' && <FundsSettings funds={funds} onSave={onSaveFund!} onDelete={onDeleteFund!} />}
           {activeTab === 'sales-funnels' && <SalesFunnelsSettings funnels={salesFunnels} onSave={onSaveSalesFunnel!} onDelete={onDeleteSalesFunnel!} notificationPrefs={notificationPrefs} onUpdatePrefs={onUpdateNotificationPrefs} />}
           {activeTab === 'statuses' && <SpaceSettings activeTab={activeTab} tables={tables} projects={projects} statuses={statuses} priorities={priorities} onUpdateTable={onUpdateTable!} onCreateTable={onCreateTable!} onDeleteTable={onDeleteTable!} onUpdateProjects={onUpdateProjects} onUpdateStatuses={onUpdateStatuses} onUpdatePriorities={onUpdatePriorities} />}
           {activeTab === 'priorities' && <SpaceSettings activeTab={activeTab} tables={tables} projects={projects} statuses={statuses} priorities={priorities} onUpdateTable={onUpdateTable!} onCreateTable={onCreateTable!} onDeleteTable={onDeleteTable!} onUpdateProjects={onUpdateProjects} onUpdateStatuses={onUpdateStatuses} onUpdatePriorities={onUpdatePriorities} />}

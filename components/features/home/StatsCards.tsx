@@ -11,6 +11,7 @@ interface StatsCardsProps {
   financePlan?: FinancePlan | null;
   tasks: Task[];
   currentUser: User;
+  accountsReceivable?: { amount: number }[];
 }
 
 export const StatsCards: React.FC<StatsCardsProps> = ({
@@ -18,10 +19,12 @@ export const StatsCards: React.FC<StatsCardsProps> = ({
   financePlan,
   tasks,
   currentUser,
+  accountsReceivable = [],
 }) => {
-  const totalRevenue = deals.filter(d => d.stage === 'won').reduce((sum, d) => sum + d.amount, 0);
+  const totalRevenue = (deals || []).filter(d => d && d.stage === 'won').reduce((sum, d) => sum + d.amount, 0);
+  const totalReceivable = (accountsReceivable || []).reduce((sum, r) => sum + (r?.amount || 0), 0);
   const planPercent = financePlan && financePlan.salesPlan > 0
-    ? Math.round((financePlan.currentIncome / financePlan.salesPlan) * 100)
+    ? Math.round((totalRevenue / financePlan.salesPlan) * 100)
     : 0;
   const myDeals = deals.filter(d => d && d.assigneeId === currentUser?.id && d.stage !== 'won' && d.stage !== 'lost');
   const myTasks = tasks.filter(t =>
@@ -75,6 +78,17 @@ export const StatsCards: React.FC<StatsCardsProps> = ({
               <p className="text-lg font-bold text-gray-900 dark:text-white">{planPercent}%</p>
             </div>
             <TrendingUp size={20} className="text-purple-500" />
+          </div>
+        </Card>
+      )}
+
+      {totalReceivable > 0 && (
+        <Card className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Задолженности</p>
+              <p className="text-lg font-bold text-amber-700 dark:text-amber-300">{totalReceivable.toLocaleString()} UZS</p>
+            </div>
           </div>
         </Card>
       )}

@@ -1,5 +1,5 @@
 
-import { Project, Role, TableCollection, Task, User, Doc, StatusOption, PriorityOption, NotificationPreferences, Department, FinanceCategory, OrgPosition, AutomationRule } from "./types";
+import { Project, Role, TableCollection, Task, User, Doc, StatusOption, PriorityOption, NotificationPreferences, Department, FinanceCategory, Fund, OrgPosition, AutomationRule } from "./types";
 
 // Демо: всё работает локально (localStorage)
 export const FIREBASE_DB_URL: string = '';
@@ -115,5 +115,12 @@ export const DEFAULT_FINANCE_CATEGORIES: FinanceCategory[] = [
     { id: 'fc4', name: 'Аренда офиса', type: 'fixed', value: 5000000, color: 'bg-orange-100 text-orange-700' },
     { id: 'fc5', name: 'Сервисы / Софт', type: 'fixed', value: 1000000, color: 'bg-green-100 text-green-700' },
     { id: 'fc6', name: 'Дивиденды', type: 'percent', value: 10, color: 'bg-yellow-100 text-yellow-700' },
+];
+
+/** Моковые фонды для распределения дохода (настраиваются в настройках) */
+export const DEFAULT_FUNDS: Fund[] = [
+    { id: 'fund-1', name: 'Зарплаты', order: 1 },
+    { id: 'fund-2', name: 'Закупки', order: 2 },
+    { id: 'fund-3', name: 'Резерв', order: 3 },
 ];
 

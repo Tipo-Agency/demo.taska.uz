@@ -3,6 +3,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { Project, Role, Task, User, StatusOption, PriorityOption, TableCollection, BusinessProcess } from '../types';
 import { Trash2, Calendar, Layout, AlertCircle, ChevronDown, Check, Network, TrendingUp, FileText, Archive, Layers, Plus, CheckCircle2 as CheckIcon } from 'lucide-react';
 import { formatDate, normalizeDateForInput, isOverdue } from '../utils/dateUtils';
+import { UserAvatar } from './features/common/UserAvatar';
 
 interface TableViewProps {
   tasks: Task[];
@@ -204,13 +205,13 @@ const AssigneeCell: React.FC<{ task: Task, users: User[], onUpdate: (assigneeIds
                     </>
                 ) : assignees.length === 1 ? (
                     <>
-                        <img src={assignees[0].avatar} className="w-6 h-6 rounded-full border-2 border-white dark:border-[#252525] shrink-0 object-cover object-center" title={assignees[0].name} alt={assignees[0].name} />
+                        <UserAvatar user={assignees[0]} size="sm" className="shrink-0" />
                         <span className="text-xs text-gray-700 dark:text-gray-300 truncate max-w-[100px] font-medium">{assignees[0].name}</span>
                     </>
                 ) : (
                     <div className="flex -space-x-1.5 shrink-0">
                         {assignees.slice(0, 3).map((user) => (
-                            <img key={user.id} src={user.avatar} className="w-6 h-6 rounded-full border-2 border-white dark:border-[#252525] object-cover object-center" title={user.name} alt={user.name} />
+                            <UserAvatar key={user.id} user={user} size="sm" className="border-2 border-white dark:border-[#252525]" />
                         ))}
                         {assignees.length > 3 && (
                             <div className="w-6 h-6 rounded-full bg-gray-200 dark:bg-[#333] border-2 border-white dark:border-[#252525] flex items-center justify-center text-[10px] font-bold text-gray-600 dark:text-gray-400">
@@ -242,7 +243,7 @@ const AssigneeCell: React.FC<{ task: Task, users: User[], onUpdate: (assigneeIds
                                 <div className={`w-5 h-5 border-2 rounded flex items-center justify-center transition-colors ${isSelected ? 'bg-blue-600 border-blue-600' : 'border-gray-300 dark:border-gray-500 bg-white dark:bg-[#252525]'}`}>
                                     {isSelected && <CheckIcon size={12} className="text-white" />}
                                 </div>
-                                <img src={u.avatar} className="w-8 h-8 rounded-full border border-gray-200 dark:border-gray-600 object-cover object-center" />
+                                <UserAvatar user={u} size="md" />
                                 <span className="text-sm font-medium text-gray-800 dark:text-gray-200 flex-1 truncate">{u.name}</span>
                             </div>
                         );

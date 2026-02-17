@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   Search, Moon, Sun, Settings, Bell, ChevronDown, LogOut, User as UserIcon, Home, Menu, X,
-  BarChart3, Wallet, Network, PieChart, Briefcase, UserCheck, CheckSquare, Users, FileText, Instagram, Layers, Globe
+  BarChart3, Wallet, Network, PieChart, Briefcase, UserCheck, CheckSquare, Users, FileText, Instagram, Layers, Globe, Package
 } from 'lucide-react';
 import { User, Role, TableCollection } from '../types';
 import { DynamicIcon } from './AppIcons';
@@ -64,6 +64,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
       case 'docs': return { title: 'Документы', icon: <FileText size={20} /> };
       case 'doc-editor': return { title: 'Редактор документа', icon: <FileText size={20} /> };
       case 'sites': return { title: 'Сайты', icon: <Globe size={20} /> };
+      case 'inventory': return { title: 'Склад', icon: <Package size={20} /> };
       default: return { title: view, icon: <Settings size={20} /> };
     }
   };
@@ -98,17 +99,17 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         )}
       </div>
 
-      {/* Global Search */}
-      <div className="flex-1 max-w-xl mx-2 md:mx-4 hidden sm:block">
+      {/* Глобальный поиск по системе — выразительное поле */}
+      <div className="flex-1 max-w-2xl mx-2 md:mx-4 hidden sm:block">
         <div className="relative group">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500"/>
+          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#267022]"/>
           <input 
             type="text" 
-            placeholder="Поиск..." 
+            placeholder="Поиск по задачам, сделкам, клиентам..." 
             value={searchQuery}
             onFocus={onSearchFocus}
             onChange={e => onSearchChange(e.target.value)}
-            className="w-full bg-gray-100 dark:bg-[#252525] border border-transparent dark:border-[#333] group-focus-within:border-blue-500 dark:group-focus-within:border-blue-500 rounded-lg pl-9 pr-4 py-1.5 text-sm text-gray-900 dark:text-white outline-none transition-all placeholder-gray-500"
+            className="w-full bg-gray-100 dark:bg-[#252525] border-2 border-transparent dark:border-[#333] group-focus-within:border-[#267022] rounded-xl pl-10 pr-4 py-2 text-sm text-gray-900 dark:text-white outline-none transition-all placeholder-gray-500 font-medium"
           />
         </div>
       </div>

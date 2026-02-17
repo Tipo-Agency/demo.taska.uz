@@ -3,8 +3,8 @@ import React from 'react';
 import { 
   Task, User, Project, StatusOption, PriorityOption, ActivityLog, 
   Deal, Client, Contract, EmployeeInfo, Meeting, ContentPost, 
-  Doc, Folder, TableCollection, Department, FinanceCategory, 
-  FinancePlan, PurchaseRequest, FinancialPlanDocument, FinancialPlanning, OrgPosition, BusinessProcess, SalesFunnel, 
+  Doc, Folder, TableCollection,   Department, FinanceCategory, Fund,
+  FinancePlan, PurchaseRequest, FinancialPlanDocument, FinancialPlanning, OrgPosition, BusinessProcess, SalesFunnel,
   ViewMode, AutomationRule, Warehouse, InventoryItem, StockBalance, StockMovement, InventoryRevision, OneTimeDeal, AccountsReceivable,
   NotificationPreferences
 } from '../types';
@@ -57,6 +57,7 @@ interface AppRouterProps {
   tables: TableCollection[];
   departments: Department[];
   financeCategories: FinanceCategory[];
+  funds: Fund[];
   financePlan: FinancePlan | null;
   purchaseRequests: PurchaseRequest[];
   financialPlanDocuments?: FinancialPlanDocument[];
@@ -129,6 +130,7 @@ export const AppRouter: React.FC<AppRouterProps> = (props) => {
               onNavigateToMeetings={() => actions.setCurrentView('meetings')}
               onNavigateToDeals={() => actions.setCurrentView('sales-funnel')}
               clients={props.clients}
+              accountsReceivable={props.accountsReceivable}
           />
       );
   }
@@ -180,7 +182,7 @@ export const AppRouter: React.FC<AppRouterProps> = (props) => {
           <SettingsView 
               users={props.users} projects={props.projects} tasks={props.allTasks} statuses={props.statuses} priorities={props.priorities} tables={props.tables} automationRules={props.automationRules} currentUser={props.currentUser}
               departments={props.departments}
-              docs={props.docs} contentPosts={props.contentPosts} financeCategories={props.financeCategories}
+              docs={props.docs} contentPosts={props.contentPosts} financeCategories={props.financeCategories} funds={props.funds}
               employeeInfos={props.employeeInfos} deals={props.deals} clients={props.clients} contracts={props.contracts} meetings={props.meetings}
               salesFunnels={props.salesFunnels} businessProcesses={props.businessProcesses}
               onUpdateUsers={actions.updateUsers} onUpdateProjects={actions.updateProjects} onUpdateStatuses={actions.updateStatuses} onUpdatePriorities={actions.updatePriorities}
@@ -188,7 +190,7 @@ export const AppRouter: React.FC<AppRouterProps> = (props) => {
               onUpdateNotificationPrefs={actions.updateNotificationPrefs} onSaveAutomationRule={actions.saveAutomationRule} onDeleteAutomationRule={actions.deleteAutomationRule}
               onUpdateProfile={actions.updateProfile} onSaveDeal={actions.saveDeal} onClose={actions.closeSettings} initialTab={props.settingsActiveTab}
               onSaveDepartment={actions.saveDepartment} onDeleteDepartment={actions.deleteDepartment}
-              onSaveFinanceCategory={actions.saveFinanceCategory} onDeleteFinanceCategory={actions.deleteFinanceCategory}
+              onSaveFinanceCategory={actions.saveFinanceCategory} onDeleteFinanceCategory={actions.deleteFinanceCategory} onSaveFund={actions.saveFund} onDeleteFund={actions.deleteFund}
               onSaveSalesFunnel={actions.saveSalesFunnel} onDeleteSalesFunnel={actions.deleteSalesFunnel}
               notificationPrefs={props.notificationPrefs}
               onRestoreTask={actions.restoreTask}
@@ -267,7 +269,7 @@ export const AppRouter: React.FC<AppRouterProps> = (props) => {
   }
 
   if (view === 'finance') {
-      return <FinanceModule categories={props.financeCategories} plan={props.financePlan} requests={props.purchaseRequests} departments={props.departments} users={props.users} currentUser={props.currentUser} financialPlanDocuments={props.financialPlanDocuments} financialPlannings={props.financialPlannings} actions={actions} />;
+      return <FinanceModule categories={props.financeCategories} funds={props.funds} plan={props.financePlan} requests={props.purchaseRequests} departments={props.departments} users={props.users} currentUser={props.currentUser} financialPlanDocuments={props.financialPlanDocuments} financialPlannings={props.financialPlannings} actions={actions} />;
   }
 
   if (view === 'employees' || view === 'business-processes') {

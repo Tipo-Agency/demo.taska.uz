@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { TaskSelect } from './TaskSelect';
-import { FinanceCategory, FinancePlan, PurchaseRequest, Department, User, Role, FinancialPlanDocument, FinancialPlanning } from '../types';
+import { FinanceCategory, Fund, FinancePlan, PurchaseRequest, Department, User, Role, FinancialPlanDocument, FinancialPlanning } from '../types';
 import { Wallet, Plus, X, Edit2, Trash2, PieChart, TrendingUp, DollarSign, Check, AlertCircle, Calendar, Settings, ArrowLeft, ArrowRight, Save, FileText, Clock, CheckCircle2, ChevronDown } from 'lucide-react';
 import { Tabs, Button, Card } from './ui';
 import { FilterConfig } from './FiltersPanel';
@@ -9,6 +9,7 @@ import { Filter } from 'lucide-react';
 
 interface FinanceViewProps {
   categories: FinanceCategory[];
+  funds: Fund[];
   plan: FinancePlan;
   requests: PurchaseRequest[];
   departments: Department[];
@@ -25,7 +26,7 @@ interface FinanceViewProps {
 }
 
 const FinanceView: React.FC<FinanceViewProps> = ({ 
-    categories, plan, requests, departments, users, currentUser,
+    categories, funds = [], plan, requests, departments, users, currentUser,
     financialPlanDocuments = [], financialPlannings = [],
     onSaveRequest, onDeleteRequest,
     onSaveFinancialPlanDocument, onDeleteFinancialPlanDocument, onSaveFinancialPlanning, onDeleteFinancialPlanning
@@ -80,6 +81,7 @@ const FinanceView: React.FC<FinanceViewProps> = ({
   // Формы для создания планирования
   const [newPlanningDepartment, setNewPlanningDepartment] = useState('');
   const [newPlanningPeriod, setNewPlanningPeriod] = useState('');
+  const [newPlanningIncome, setNewPlanningIncome] = useState<number>(0);
   
   // Инициализируем периоды после вычисления currentPeriod
   useEffect(() => {
@@ -92,10 +94,14 @@ const FinanceView: React.FC<FinanceViewProps> = ({
     requestIds: string[];
     notes?: string;
     income?: number;
+    fundAllocations?: Record<string, number>;
+    requestFundIds?: Record<string, string>;
   } | null>(null);
   const [planningDetailRequestIds, setPlanningDetailRequestIds] = useState<string[]>([]);
   const [planningDetailNotes, setPlanningDetailNotes] = useState('');
   const [planningDetailIncome, setPlanningDetailIncome] = useState<number>(0);
+  const [planningDetailFundAllocations, setPlanningDetailFundAllocations] = useState<Record<string, number>>({});
+  const [planningDetailRequestFundIds, setPlanningDetailRequestFundIds] = useState<Record<string, string>>({});
   
   // Состояния для детальной страницы плана
   const planDetailInitialValuesRef = useRef<{
@@ -113,17 +119,22 @@ const FinanceView: React.FC<FinanceViewProps> = ({
       planningDetailInitialValuesRef.current = {
         requestIds: selectedPlanning.requestIds,
         notes: selectedPlanning.notes,
-        income: (selectedPlanning as any).income || 0
+        income: selectedPlanning.income ?? 0,
+        fundAllocations: selectedPlanning.fundAllocations ?? {},
+        requestFundIds: selectedPlanning.requestFundIds ?? {}
       };
       setPlanningDetailRequestIds(selectedPlanning.requestIds);
       setPlanningDetailNotes(selectedPlanning.notes || '');
-      setPlanningDetailIncome((selectedPlanning as any).income || 0);
+      setPlanningDetailIncome(selectedPlanning.income ?? 0);
+      setPlanningDetailFundAllocations(selectedPlanning.fundAllocations ?? {});
+      setPlanningDetailRequestFundIds(selectedPlanning.requestFundIds ?? {});
     } else {
-      // Сбрасываем значения, если планирование не выбрано
       planningDetailInitialValuesRef.current = null;
       setPlanningDetailRequestIds([]);
       setPlanningDetailNotes('');
       setPlanningDetailIncome(0);
+      setPlanningDetailFundAllocations({});
+      setPlanningDetailRequestFundIds({});
     }
   }, [selectedPlanning]);
   
@@ -454,10 +465,13 @@ const FinanceView: React.FC<FinanceViewProps> = ({
     
     const hasChanges = (): boolean => {
       if (!planningDetailInitialValuesRef.current) return false;
+      const ref = planningDetailInitialValuesRef.current;
       return (
-        JSON.stringify([...planningDetailRequestIds].sort()) !== JSON.stringify([...planningDetailInitialValuesRef.current.requestIds].sort()) ||
-        planningDetailNotes !== (planningDetailInitialValuesRef.current.notes || '') ||
-        planningDetailIncome !== (planningDetailInitialValuesRef.current.income || 0)
+        JSON.stringify([...planningDetailRequestIds].sort()) !== JSON.stringify([...ref.requestIds].sort()) ||
+        planningDetailNotes !== (ref.notes || '') ||
+        planningDetailIncome !== (ref.income || 0) ||
+        JSON.stringify(planningDetailFundAllocations) !== JSON.stringify(ref.fundAllocations || {}) ||
+        JSON.stringify(planningDetailRequestFundIds) !== JSON.stringify(ref.requestFundIds || {})
       );
     };
     
@@ -479,14 +493,18 @@ const FinanceView: React.FC<FinanceViewProps> = ({
         ...selectedPlanning,
         requestIds: planningDetailRequestIds,
         notes: planningDetailNotes,
-        updatedAt: new Date().toISOString(),
-        ...(planningDetailIncome > 0 && { income: planningDetailIncome } as any)
+        income: planningDetailIncome,
+        fundAllocations: Object.keys(planningDetailFundAllocations).length ? planningDetailFundAllocations : undefined,
+        requestFundIds: Object.keys(planningDetailRequestFundIds).length ? planningDetailRequestFundIds : undefined,
+        updatedAt: new Date().toISOString()
       };
       onSaveFinancialPlanning(updated);
       planningDetailInitialValuesRef.current = {
         requestIds: planningDetailRequestIds,
         notes: planningDetailNotes,
-        income: planningDetailIncome
+        income: planningDetailIncome,
+        fundAllocations: planningDetailFundAllocations,
+        requestFundIds: planningDetailRequestFundIds
       };
     };
     
@@ -586,7 +604,7 @@ const FinanceView: React.FC<FinanceViewProps> = ({
         {/* Доход */}
         <div className="bg-white dark:bg-[#252525] border border-gray-200 dark:border-[#333] rounded-xl p-6">
           <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2">
-            Доход за период (UZS)
+            Доход за период (UZS), кассовый метод
           </label>
           <input
             type="number"
@@ -596,7 +614,41 @@ const FinanceView: React.FC<FinanceViewProps> = ({
             placeholder="0"
           />
         </div>
-        
+
+        {/* Распределение по фондам */}
+        {funds.filter(f => !f.isArchived).length > 0 && (
+          <div className="bg-white dark:bg-[#252525] border border-gray-200 dark:border-[#333] rounded-xl p-6">
+            <h3 className="text-sm font-bold text-gray-800 dark:text-white uppercase mb-3">Распределение дохода по фондам</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">Сумма по фондам не должна превышать доход за период.</p>
+            <div className="space-y-3">
+              {funds.filter(f => !f.isArchived).map(fund => (
+                <div key={fund.id} className="flex items-center gap-4">
+                  <label className="w-40 text-sm font-medium text-gray-700 dark:text-gray-300 shrink-0">{fund.name}</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={planningDetailFundAllocations[fund.id] ?? ''}
+                    onChange={(e) => setPlanningDetailFundAllocations(prev => ({ ...prev, [fund.id]: parseFloat(e.target.value) || 0 }))}
+                    className="flex-1 bg-white dark:bg-[#333] border border-gray-300 dark:border-[#555] rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    placeholder="0"
+                  />
+                  <span className="text-xs text-gray-500 dark:text-gray-400">UZS</span>
+                </div>
+              ))}
+            </div>
+            {planningDetailIncome > 0 && (() => {
+              const allocated = Object.values(planningDetailFundAllocations).reduce((a, b) => a + b, 0);
+              const rest = planningDetailIncome - allocated;
+              return (
+                <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                  Распределено: {allocated.toLocaleString()} UZS · Остаток: {rest.toLocaleString()} UZS
+                  {rest < 0 && <span className="text-red-600 dark:text-red-400 ml-2">(превышение)</span>}
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
         {/* Info */}
         <div className="bg-white dark:bg-[#252525] border border-gray-200 dark:border-[#333] rounded-xl p-6">
           <div className="grid grid-cols-3 gap-4">
@@ -621,7 +673,7 @@ const FinanceView: React.FC<FinanceViewProps> = ({
         
         {/* Заявки */}
         <div className="bg-white dark:bg-[#252525] border border-gray-200 dark:border-[#333] rounded-xl overflow-hidden">
-          <div className="p-4 border-b border-gray-200 dark:border-[#333] flex items-center justify-between">
+          <div className="p-4 border-b border-gray-200 dark:border-[#333] flex items-center justify-between flex-wrap gap-2">
             <h3 className="font-bold text-gray-800 dark:text-white">Заявки в планировании ({planningRequests.length})</h3>
             <div className="flex items-center gap-4">
               <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -646,12 +698,14 @@ const FinanceView: React.FC<FinanceViewProps> = ({
                 {planningRequests.map(req => {
                   const cat = categories.find(c => c.id === req.categoryId);
                   const user = users.find(u => u.id === req.requesterId);
+                  const activeFundsList = funds.filter(f => !f.isArchived);
+                  const requestFundId = planningDetailRequestFundIds[req.id] || '';
                   return (
                     <div
                       key={req.id}
-                      className="flex items-center justify-between p-3 bg-gray-50 dark:bg-[#303030] rounded-lg hover:bg-gray-100 dark:hover:bg-[#404040] transition-colors group"
+                      className="flex items-center justify-between gap-4 p-3 bg-gray-50 dark:bg-[#303030] rounded-lg hover:bg-gray-100 dark:hover:bg-[#404040] transition-colors group"
                     >
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <div className="font-medium text-gray-900 dark:text-white">{cat?.name || 'Без категории'}</div>
                         <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                           {user?.name} • {req.amount.toLocaleString()} UZS
@@ -665,7 +719,21 @@ const FinanceView: React.FC<FinanceViewProps> = ({
                           </div>
                         )}
                       </div>
-                      <div className="flex items-center gap-2">
+                      {activeFundsList.length > 0 && (
+                        <div className="shrink-0 w-40">
+                          <select
+                            value={requestFundId}
+                            onChange={(e) => setPlanningDetailRequestFundIds(prev => ({ ...prev, [req.id]: e.target.value }))}
+                            className="w-full bg-white dark:bg-[#333] border border-gray-300 dark:border-[#555] rounded-lg px-2 py-1.5 text-xs text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
+                          >
+                            <option value="">— Фонд —</option>
+                            {activeFundsList.map(f => (
+                              <option key={f.id} value={f.id}>{f.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2 shrink-0">
                         <span className={`px-2 py-1 rounded text-xs font-bold ${
                           req.status === 'approved' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
                           req.status === 'rejected' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
@@ -1310,6 +1378,7 @@ const FinanceView: React.FC<FinanceViewProps> = ({
     if (isPlanningCreateModalOpen && departments.length > 0) {
       setNewPlanningDepartment(departments[0].id);
       setNewPlanningPeriod(currentPeriod);
+      setNewPlanningIncome(0);
     }
   }, [isPlanningCreateModalOpen, departments.length, currentPeriod]);
 
@@ -1323,37 +1392,31 @@ const FinanceView: React.FC<FinanceViewProps> = ({
       alert('Выберите подразделение');
       return;
     }
-    
-    // Проверяем наличие финансового плана для данного подразделения и периода
-    const existingPlan = financialPlanDocuments.find(
-      plan => plan.departmentId === newPlanningDepartment && plan.period === newPlanningPeriod
-    );
-    
-    if (!existingPlan) {
-      alert('Сначала создайте финансовый план для данного подразделения и периода');
-      setIsPlanningCreateModalOpen(false);
+    const income = Number(newPlanningIncome) || 0;
+    if (income <= 0) {
+      alert('Введите сумму дохода за период (по кассовому методу)');
       return;
     }
-    
-    // Находим заявки за период
+
     const periodStart = new Date(newPlanningPeriod + '-01');
     const periodEnd = new Date(periodStart.getFullYear(), periodStart.getMonth() + 1, 0);
-    
+
     const relevantRequests = requests.filter(req => {
       if (req.departmentId !== newPlanningDepartment) return false;
       const reqDate = new Date(req.date);
       return reqDate >= periodStart && reqDate <= periodEnd;
     });
-    
+
     const planning: FinancialPlanning = {
       id: `fp-${Date.now()}`,
       departmentId: newPlanningDepartment,
       period: newPlanningPeriod,
+      income,
       requestIds: relevantRequests.map(r => r.id),
       status: 'created',
       createdAt: new Date().toISOString()
     };
-    
+
     onSaveFinancialPlanning(planning);
     setIsPlanningCreateModalOpen(false);
     setActiveTab('planning');
@@ -1692,6 +1755,17 @@ const FinanceView: React.FC<FinanceViewProps> = ({
                             value={newPlanningPeriod}
                             onChange={(e) => setNewPlanningPeriod(e.target.value)}
                             className="w-full bg-white dark:bg-[#333] border border-gray-300 dark:border-[#555] rounded-lg px-4 py-3 text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1 uppercase">Доход за период (UZS), кассовый метод <span className="text-red-500">*</span></label>
+                        <input
+                            type="number"
+                            min={1}
+                            value={newPlanningIncome || ''}
+                            onChange={(e) => setNewPlanningIncome(parseFloat(e.target.value) || 0)}
+                            className="w-full bg-white dark:bg-[#333] border border-gray-300 dark:border-[#555] rounded-lg px-4 py-3 text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            placeholder="0"
                         />
                     </div>
                     <div className="flex justify-end gap-2 pt-2">

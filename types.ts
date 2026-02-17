@@ -507,13 +507,27 @@ export interface FinancialPlanDocument {
     isArchived?: boolean;
 }
 
-// Финансовое планирование - создается на основе финансового плана, содержит заявки
+/** Фонд — целевое распределение дохода (настраиваются в настройках) */
+export interface Fund {
+    id: string;
+    name: string;
+    order?: number;
+    isArchived?: boolean;
+}
+
+// Финансовое планирование: доход (кассовый метод) → распределение по фондам → заявки по фондам
 export interface FinancialPlanning {
     id: string;
     departmentId: string;
     period: string; // YYYY-MM формат месяца
-    planDocumentId?: string; // Ссылка на FinancialPlanDocument
-    requestIds: string[]; // ID заявок, которые попадают в это планирование
+    planDocumentId?: string; // Ссылка на FinancialPlanDocument (опционально)
+    /** Доход за период (по кассовому методу) — вносится при создании/редактировании */
+    income?: number;
+    /** Распределение дохода по фондам: fundId -> сумма */
+    fundAllocations?: Record<string, number>;
+    /** Привязка заявки к фонду: requestId -> fundId (из какого фонда оплачивается заявка) */
+    requestFundIds?: Record<string, string>;
+    requestIds: string[]; // ID заявок в планировании
     status: 'created' | 'conducted' | 'approved'; // создан, проведен, одобрен
     createdAt: string;
     updatedAt?: string;

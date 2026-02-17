@@ -24,11 +24,9 @@ import {
 } from '../../types';
 import {
   HomeHeader,
-  CreateEntityButton,
   MyTasksSection,
   UpcomingMeetings,
   NewDealsSection,
-  RecentActivity,
   StatsCards,
   BirthdayModal,
 } from '../features/home';
@@ -47,6 +45,7 @@ interface HomePageProps {
   clients?: Client[];
   contentPosts?: ContentPost[];
   employeeInfos?: EmployeeInfo[];
+  accountsReceivable?: { amount: number }[];
   users: User[];
   projects: Project[];
   statuses: StatusOption[];
@@ -72,6 +71,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   clients = [],
   contentPosts = [],
   employeeInfos = [],
+  accountsReceivable = [],
   users,
   projects,
   statuses,
@@ -142,28 +142,26 @@ export const HomePage: React.FC<HomePageProps> = ({
       <PageLayout>
         <Container safeArea className="py-6 overflow-y-auto">
           <div className="max-w-7xl mx-auto space-y-6">
-            {/* Header */}
-            <HomeHeader user={currentUser} />
-
-            {/* Create Entity Button */}
-            <CreateEntityButton
+            {/* Header: приветствие слева, быстрые действия справа */}
+            <HomeHeader
+              user={currentUser}
               onQuickCreateTask={onQuickCreateTask}
               onQuickCreateDeal={onQuickCreateDeal}
               onQuickCreateProcess={onQuickCreateProcess}
             />
 
-            {/* Stats Cards */}
+            {/* Stats Cards: задачи, сделки, выручка, план, задолженности */}
             <StatsCards
               deals={deals}
               financePlan={financePlan}
               tasks={tasks}
               currentUser={currentUser}
+              accountsReceivable={accountsReceivable}
             />
 
-            {/* Main Content Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
-              {/* Left Column - Tasks */}
-              <div className="lg:col-span-1 flex flex-col">
+            {/* Main Content: задачи и сделки/встречи (без блока последней активности) */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+              <div className="flex flex-col">
                 <MyTasksSection
                   tasks={myTasks}
                   users={users}
@@ -174,29 +172,17 @@ export const HomePage: React.FC<HomePageProps> = ({
                   onViewAll={onNavigateToTasks}
                 />
               </div>
-
-              {/* Middle Column - New Deals and Meetings */}
-              <div className="lg:col-span-1 flex flex-col space-y-4">
+              <div className="flex flex-col space-y-4">
                 <NewDealsSection
                   deals={deals}
                   clients={clients}
                   users={users}
                   onViewAll={onNavigateToDeals || (() => {})}
                 />
-
                 <UpcomingMeetings
                   meetings={meetings}
                   users={users}
                   onViewAll={onNavigateToMeetings}
-                />
-              </div>
-
-              {/* Right Column - Recent Activity */}
-              <div className="lg:col-span-1 flex flex-col">
-                <RecentActivity
-                  activities={recentActivity}
-                  users={users}
-                  onViewAll={onNavigateToInbox}
                 />
               </div>
             </div>

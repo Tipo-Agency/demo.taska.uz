@@ -8,10 +8,11 @@ import {
   DEFAULT_PRIORITIES,
   DEFAULT_NOTIFICATION_PREFS,
   DEFAULT_FINANCE_CATEGORIES,
+  DEFAULT_FUNDS,
   DEFAULT_AUTOMATION_RULES,
 } from '../constants';
 
-const SEED_FLAG = 'taska_demo_seeded_v2';
+const SEED_FLAG = 'taska_demo_seeded_v3';
 
 const now = () => new Date().toISOString();
 const today = () => now().slice(0, 10);
@@ -72,6 +73,11 @@ export function runSeed(): void {
     'Доработать форму заявки', 'Подготовить презентацию для клиента', 'Настроить цепочки писем',
   ];
   const statuses = ['Не начато', 'В работе', 'На проверке', 'Выполнено'];
+  const dateOffset = (i: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + (i % 21) - 7);
+    return d.toISOString().slice(0, 10);
+  };
   const baseTasks = taskTitles.slice(0, 8).map((title, i) => ({
     id: `task_${i + 1}`,
     tableId: 't1',
@@ -80,8 +86,8 @@ export function runSeed(): void {
     status: statuses[i % 4],
     priority: i % 3 === 0 ? 'Низкий' : i % 3 === 1 ? 'Средний' : 'Высокий',
     assigneeId: [demoUserId, 'u2', 'u3', 'u4'][i % 4],
-    startDate: today(),
-    endDate: today(),
+    startDate: dateOffset(i),
+    endDate: dateOffset(i + 2),
     createdAt: now(),
   }));
   const extraTasks = taskTitles.slice(8, 20).map((title, i) => ({
@@ -92,8 +98,8 @@ export function runSeed(): void {
     status: statuses[(i + 2) % 4],
     priority: ['Низкий', 'Средний', 'Высокий'][i % 3],
     assigneeId: [demoUserId, 'u2', 'u3'][i % 3],
-    startDate: today(),
-    endDate: today(),
+    startDate: dateOffset(i + 8),
+    endDate: dateOffset(i + 10),
     createdAt: now(),
     ...(i === 0 ? { contentPostId: 'cp1', source: 'Контент-план' } : {}),
     ...(i === 1 ? { contentPostId: 'cp_2', source: 'Контент-план' } : {}),
@@ -183,7 +189,7 @@ export function runSeed(): void {
     clientId: i < 10 ? clients[i].id : undefined,
     amount: 1500000 + i * 400000,
     currency: 'UZS',
-    stage: i >= 15 ? 'lost' : (['new', 'qualification', 'proposal', 'negotiation'] as const)[i % 4],
+    stage: i >= 15 ? 'lost' : i < 3 ? 'won' : (['new', 'qualification', 'proposal', 'negotiation'] as const)[i % 4],
     funnelId: 'f1',
     assigneeId: [demoUserId, 'u2', 'u3', 'u4'][i % 4],
     createdAt: now(),
@@ -235,11 +241,13 @@ export function runSeed(): void {
     { id: 'emp6', userId: 'u6', departmentId: 'd2', position: 'SMM-специалист', hireDate: '2024-06-01' },
   ]);
 
-  // Задолженности (по сделкам/договорам)
+  // Задолженности (моковые — по договорам/сделкам)
   localStoreService.setAll('accountsReceivable', [
     { id: 'ar1', clientId: 'c1', dealId: 'contract_c1_1', amount: 500000, currency: 'UZS', dueDate: today(), status: 'overdue', description: 'Остаток по договору Д-2025-100', createdAt: now() },
     { id: 'ar2', clientId: 'c2', dealId: 'contract_c2_1', amount: 600000, currency: 'UZS', dueDate: today(), status: 'current', description: 'Платёж за март', createdAt: now() },
     { id: 'ar3', clientId: 'c3', dealId: 'contract_c3_1', amount: 700000, currency: 'UZS', dueDate: today(), status: 'overdue', description: 'Просроченный платёж', createdAt: now() },
+    { id: 'ar4', clientId: 'c4', dealId: 'contract_c4_1', amount: 400000, currency: 'UZS', dueDate: today(), status: 'current', description: 'Ожидает оплаты', createdAt: now() },
+    { id: 'ar5', clientId: 'c5', dealId: 'onetime_c5', amount: 800000, currency: 'UZS', dueDate: today(), status: 'overdue', description: 'Задолженность по разовой сделке', createdAt: now() },
   ]);
 
   // Документы и папки (мок по вкладкам)
@@ -307,8 +315,9 @@ export function runSeed(): void {
     { id: 'a1', userId: demoUserId, userName: 'Демо', userAvatar: '', action: 'task_created', details: 'Задача «Подготовить КП»', timestamp: now(), read: false },
   ]);
 
-  // Финансы: 5 финпланов, 5 планирований, 20–30 заявок на 2 разные недели
+  // Финансы: категории, фонды, план, планирования, заявки
   localStoreService.setAll('financeCategories', DEFAULT_FINANCE_CATEGORIES);
+  localStoreService.setAll('funds', DEFAULT_FUNDS);
   localStoreService.setAll('financePlan', [{ id: 'default', period: 'month', salesPlan: 50000000, currentIncome: 12000000 }]);
   const week1 = new Date();
   week1.setDate(week1.getDate() - 7);

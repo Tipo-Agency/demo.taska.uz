@@ -1,9 +1,10 @@
 import { localStoreService } from "../../services/localStoreService";
-import { Department, FinanceCategory, FinancePlan, PurchaseRequest, FinancialPlanDocument, FinancialPlanning } from "../../types";
-import { DEFAULT_FINANCE_CATEGORIES } from "../../constants";
+import { Department, FinanceCategory, FinancePlan, PurchaseRequest, FinancialPlanDocument, FinancialPlanning, Fund } from "../../types";
+import { DEFAULT_FINANCE_CATEGORIES, DEFAULT_FUNDS } from "../../constants";
 
 const DEPARTMENTS_COLLECTION = 'departments';
 const FINANCE_CATEGORIES_COLLECTION = 'financeCategories';
+const FUNDS_COLLECTION = 'funds';
 const FINANCE_PLAN_COLLECTION = 'financePlan';
 const PURCHASE_REQUESTS_COLLECTION = 'purchaseRequests';
 const FINANCIAL_PLAN_DOCUMENTS_COLLECTION = 'financialPlanDocuments';
@@ -25,6 +26,15 @@ export const financeEndpoint = {
     },
     updateCategories: async (categories: FinanceCategory[]) => {
         await Promise.all(categories.map(cat => localStoreService.save(FINANCE_CATEGORIES_COLLECTION, cat)));
+    },
+
+    getFunds: async (): Promise<Fund[]> => {
+        const items = await localStoreService.getAll(FUNDS_COLLECTION);
+        const list = items.length > 0 ? (items as Fund[]) : DEFAULT_FUNDS;
+        return [...list].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    },
+    updateFunds: async (funds: Fund[]) => {
+        await Promise.all(funds.map(f => localStoreService.save(FUNDS_COLLECTION, f)));
     },
     
     getPlan: async (): Promise<FinancePlan | null> => {

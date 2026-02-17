@@ -1,10 +1,11 @@
 
 import React from 'react';
-import { FinanceCategory, FinancePlan, PurchaseRequest, Department, User, FinancialPlanDocument, FinancialPlanning } from '../../types';
+import { FinanceCategory, Fund, FinancePlan, PurchaseRequest, Department, User, FinancialPlanDocument, FinancialPlanning } from '../../types';
 import FinanceView from '../FinanceView';
 
 interface FinanceModuleProps {
   categories: FinanceCategory[];
+  funds: Fund[];
   plan: FinancePlan | null;
   requests: PurchaseRequest[];
   departments: Department[];
@@ -15,10 +16,11 @@ interface FinanceModuleProps {
   actions: any;
 }
 
-export const FinanceModule: React.FC<FinanceModuleProps> = ({ categories, plan, requests, departments, users, currentUser, financialPlanDocuments = [], financialPlannings = [], actions }) => {
+export const FinanceModule: React.FC<FinanceModuleProps> = ({ categories, funds = [], plan, requests, departments, users, currentUser, financialPlanDocuments = [], financialPlannings = [], actions }) => {
     return (
         <FinanceView 
-            categories={categories} 
+            categories={categories}
+            funds={funds}
             plan={plan || {id:'p1', period:'month', salesPlan:0, currentIncome:0}} 
             requests={requests} 
             departments={departments} 
